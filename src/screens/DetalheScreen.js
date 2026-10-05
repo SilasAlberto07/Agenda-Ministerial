@@ -1,0 +1,157 @@
+import { useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform, Alert } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import { useAuth } from '../auth/AuthContext';
+import { useEventos } from '../services/EventosContext';
+import { excluirEvento } from '../services/eventos';
+import { Botao } from '../components/ui';
+import { Icone } from '../components/icones';
+import { cores, fontes, corDoTipo, LEMBRETES } from '../theme';
+import { dataLonga, hora } from '../utils/datas';
+
+export default function DetalheScreen({ navigation, route }) {
+  const { usuario } = useAuth();
+  const { eventos } = useEventos();
+  const ev = eventos.find((e) => e.id === route.params?.id);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: '',
+      headerRight: () =>
+        ev ? (
+          <Pressable onPress={() => navigation.navigate('NovoEvento', { id: ev.id })} style={st.editar}>
+            <Text style={st.editarTexto}>Editar</Text>
+          </Pressable>
+        ) : null,
+    });
+  }, [ev, navigation]);
+
+  if (!ev) {
+    return (
+      <View style={[st.tela, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={st.texto}>Compromisso não encontrado.</Text>
+      </View>
+    );
+  }
+
+  const c = corDoTipo(ev.tipo);
+
+  const abrirRota = () => {
+    const { latitude, longitude } = ev.local;
+    const destino = `${latitude},${longitude}`;
+    const url =
+      Platform.OS === 'ios'
+        ? `maps://?daddr=${destino}`
+        : `https://www.google.com/maps/dir/?api=1&destination=${destino}`;
+    Linking.openURL(url).catch(() =>
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destino}`)
+    );
+  };
+
+  const excluir = () =>
+    Alert.alert('Excluir compromisso?', `"${ev.nome}" e os lembretes dele serão apagados.`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          await excluirEvento(usuario.uid, ev.id);
+          navigation.goBack();
+        },
+      },
+    ]);
+
+  return (
+    <ScrollView style={st.tela} contentContainerStyle={{ padding: 24, paddingTop: 8, gap: 16, paddingBottom: 48 }}>
+      <View style={{ gap: 8 }}>
+        <Text style={[st.tag, { color: c.texto, backgroundColor: c.fundo }]}>
+          {ev.tipo}
+          {ev.participacao ? ` · vou ${ev.participacao.toLowerCase()}` : ''}
+        </Text>
+        <Text style={st.titulo}>{ev.nome}</Text>
+        {ev.igreja ? <Text style={st.sub}>{ev.igreja}</Text> : null}
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Info rotulo="Data" valor={dataLonga(ev.data)} />
+        <Info rotulo="Horário" valor={hora(ev.data)} />
+      </View>
+
+      {ev.local?.latitude ? (
+        <View style={st.cartao}>
+          <MapView
+            style={{ height: 140 }}
+            pointerEvents="none"
+            region={{ latitude: ev.local.latitude, longitude: ev.local.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
+          >
+            <Marker coordinate={ev.local} pinColor={cores.vinho} />
+          </MapView>
+          <View style={{ padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Text style={[st.texto, { flex: 1, fontFamily: fontes.forte }]}>{ev.local.endereco}</Text>
+            <Botao
+              titulo="Rota"
+              onPress={abrirRota}
+              style={{ height: 44, paddingHorizontal: 16 }}
+              icone={<Icone nome="navigate" cor="#fff" tamanho={16} />}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      <View style={[st.cartao, { padding: 14, gap: 10 }]}>
+        <Text style={st.rotulo}>Lembretes</Text>
+        {ev.lembretes?.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {LEMBRETES.filter((l) => ev.lembretes.includes(l.minutos)).map((l) => (
+              <Text key={l.minutos} style={st.chip}>{l.rotulo}</Text>
+            ))}
+          </View>
+        ) : (
+          <Text style={st.texto}>Sem lembretes.</Text>
+        )}
+      </View>
+
+      {ev.observacoes ? (
+        <View style={[st.cartao, { padding: 14, gap: 6 }]}>
+          <Text style={st.rotulo}>Observações</Text>
+          <Text style={[st.texto, { lineHeight: 22 }]}>{ev.observacoes}</Text>
+        </View>
+      ) : null}
+
+      <Pressable onPress={excluir} style={st.excluir}>
+        <Icone nome="trash-outline" cor={cores.erro} tamanho={18} />
+        <Text style={st.excluirTexto}>Excluir compromisso</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
+function Info({ rotulo, valor }) {
+  return (
+    <View style={[st.cartao, { flex: 1, padding: 14, gap: 4 }]}>
+      <Text style={st.rotulo}>{rotulo}</Text>
+      <Text style={[st.texto, { fontFamily: fontes.forte }]}>{valor}</Text>
+    </View>
+  );
+}
+
+const st = StyleSheet.create({
+  tela: { flex: 1, backgroundColor: cores.fundo },
+  tag: {
+    alignSelf: 'flex-start', fontFamily: fontes.forte, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, overflow: 'hidden',
+  },
+  titulo: { fontFamily: fontes.titulo, fontSize: 30, lineHeight: 34, color: cores.tinta },
+  sub: { fontFamily: fontes.normal, fontSize: 15, color: cores.texto2 },
+  cartao: { backgroundColor: cores.cartao, borderRadius: 18, borderWidth: 1, borderColor: cores.bordaSuave, overflow: 'hidden' },
+  rotulo: { fontFamily: fontes.forte, fontSize: 12, color: cores.texto2, textTransform: 'uppercase' },
+  texto: { fontFamily: fontes.normal, fontSize: 16, color: cores.tinta },
+  chip: {
+    fontFamily: fontes.forte, fontSize: 13, color: cores.vinho, backgroundColor: cores.vinhoClaro,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 17, overflow: 'hidden',
+  },
+  editar: { height: 40, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: cores.borda, justifyContent: 'center' },
+  editarTexto: { fontFamily: fontes.forte, fontSize: 14, color: cores.tinta },
+  excluir: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14 },
+  excluirTexto: { fontFamily: fontes.forte, fontSize: 15, color: cores.erro },
+});

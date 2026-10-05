@@ -1,0 +1,76 @@
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
+import { useAuth } from '../auth/AuthContext';
+import { Botao } from '../components/ui';
+import { Icone } from '../components/icones';
+import { cores, fontes } from '../theme';
+import { prepararNotificacoes, cancelarTodosLembretes } from '../services/lembretes';
+
+export default function PerfilScreen() {
+  const { usuario, sair } = useAuth();
+
+  const testarAviso = async () => {
+    const ok = await prepararNotificacoes();
+    if (!ok) return Alert.alert('Notificações desativadas', 'Ative as notificações do app nas configurações do celular.');
+    await Notifications.scheduleNotificationAsync({
+      content: { title: 'Agenda Ministerial', body: 'Tudo certo! É assim que seus lembretes vão chegar.' },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: 'lembretes' },
+    });
+    Alert.alert('Aviso de teste', 'Em 5 segundos chega uma notificação de exemplo.');
+  };
+
+  const confirmarSair = () =>
+    Alert.alert('Sair da conta?', 'Os lembretes deste celular serão desligados até você entrar de novo.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: async () => {
+          await cancelarTodosLembretes();
+          await sair();
+        },
+      },
+    ]);
+
+  return (
+    <SafeAreaView style={st.tela} edges={['top']}>
+      <Text style={st.titulo}>Perfil</Text>
+      <View style={st.cartao}>
+        <View style={st.avatar}>
+          <Icone nome="person-outline" cor={cores.vinho} tamanho={26} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={st.nome}>{usuario?.displayName || 'Sem nome'}</Text>
+          <Text style={st.email}>{usuario?.email}</Text>
+        </View>
+      </View>
+      <View style={{ gap: 12 }}>
+        <Botao
+          titulo="Testar notificação"
+          variante="secundario"
+          onPress={testarAviso}
+          icone={<Icone nome="notifications-outline" tamanho={18} />}
+        />
+        <Botao
+          titulo="Sair"
+          variante="secundario"
+          onPress={confirmarSair}
+          icone={<Icone nome="log-out-outline" tamanho={18} />}
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const st = StyleSheet.create({
+  tela: { flex: 1, backgroundColor: cores.fundo, paddingHorizontal: 24, gap: 20 },
+  titulo: { fontFamily: fontes.titulo, fontSize: 30, color: cores.tinta, marginTop: 12 },
+  cartao: {
+    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: cores.cartao, borderRadius: 18,
+    padding: 16, borderWidth: 1, borderColor: cores.bordaSuave,
+  },
+  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: cores.vinhoClaro, alignItems: 'center', justifyContent: 'center' },
+  nome: { fontFamily: fontes.forte, fontSize: 17, color: cores.tinta },
+  email: { fontFamily: fontes.normal, fontSize: 14, color: cores.texto2 },
+});

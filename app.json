@@ -1,17 +1,20 @@
 {
   "expo": {
-    "name": "agenda-ministerial",
+    "name": "Agenda Ministerial",
     "slug": "agenda-ministerial",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#F6F2EC",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.agendaministerial.app"
     },
     "android": {
+      "package": "com.agendaministerial.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#6E1A37",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,6 +22,22 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Usamos sua localização para mostrar igrejas e endereços perto de você no mapa."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#6E1A37"
+        }
+      ]
+    ]
   }
 }
