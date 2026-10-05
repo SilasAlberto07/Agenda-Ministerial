@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
 import { useEventos } from '../services/EventosContext';
 import { Icone } from '../components/icones';
+import CartaoAvisos from '../components/CartaoAvisos';
 import { cores, fontes, corDoTipo } from '../theme';
 import { semanaAtual, mesmoDia, diaSemanaCurto, mesCurto, hora } from '../utils/datas';
 
@@ -40,6 +41,8 @@ export default function AgendaScreen({ navigation }) {
           <Text style={st.titulo}>Minha agenda</Text>
         </View>
       </View>
+
+      <CartaoAvisos compacto />
 
       <View style={st.semana}>
         {semana.map((d) => {

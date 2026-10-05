@@ -48,7 +48,7 @@ Na primeira vez, crie sua conta pela própria tela do app em **Criar conta**.
 | Escolher local | Busca por endereço/igreja/bairro ou toque no mapa para marcar o ponto |
 | Mapa | Todos os próximos compromissos com local marcado |
 | Detalhe | Informações, mapinha, botão **Rota** (abre Google Maps / Apple Maps), editar e excluir |
-| Perfil | Seus dados, **Testar notificação** e sair |
+| Perfil | Seus dados, avisos e sair |
 
 **Lembretes:** você escolhe avisar 1 dia, 3h, 2h ou 30 min antes. Os avisos são agendados no próprio celular e chegam mesmo com o app fechado. Se você entrar na conta em outro celular, os lembretes são agendados nele também automaticamente. Tocar no aviso abre o compromisso.
 
@@ -63,19 +63,76 @@ npx eas-cli@latest build --platform android
 
 O mapa usa o OpenFreeMap (dados do OpenStreetMap): gratuito, sem chave e sem limite de uso, também para uso comercial.
 
-**Notificações no Android:** o Expo Go para Android não permite notificações. Elas funcionam no app instalado pelo APK e no iPhone.
+**Notificações no Android:** o Expo Go para Android não permite notificações. Elas funcionam no app instalado pelo APK.
 
-## 6. Estrutura de pastas
+## 6. Versão para iPhone (web) com avisos
+
+O iPhone instala o app pelo Safari, sem App Store e sem conta da Apple. A agenda é a mesma do Android, e os avisos são enviados por um robô que roda de graça no GitHub Actions.
+
+### 6.1 Chaves dos avisos (uma vez só)
+
+No terminal, na pasta do projeto:
+
+```bash
+npm run chaves:avisos
+```
+
+Aparecem duas chaves: **Public Key** e **Private Key**.
+
+- Copie a **Public Key** para o `.env`, na linha `EXPO_PUBLIC_VAPID_PUBLIC_KEY=`.
+- A **Private Key** é secreta: ela vai só para o GitHub (passo 6.3). Não coloque no `.env` nem mande para ninguém.
+
+### 6.2 Publicar a versão web (Firebase Hosting, gratuito)
+
+```bash
+npx firebase-tools@latest login
+npm run web:publicar
+```
+
+O endereço do app fica `https://agenda-ministerial-83611.web.app`. Esse comando também publica as regras do arquivo `firestore.rules`. Sempre que o app mudar, rode `npm run web:publicar` de novo.
+
+### 6.3 Ligar o robô de lembretes (GitHub Actions)
+
+1. **Chave do Firebase para o robô:** Firebase Console → engrenagem → **Configurações do projeto** → **Contas de serviço** → **Gerar nova chave privada**. Baixa um arquivo `.json`. Ele é secreto: não coloque no projeto.
+2. No GitHub, abra o repositório → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** e crie:
+
+| Nome | Valor |
+|---|---|
+| `FIREBASE_SERVICE_ACCOUNT` | o conteúdo inteiro do arquivo `.json` do passo 1 (abra no Bloco de Notas e copie tudo) |
+| `VAPID_PUBLIC_KEY` | a Public Key do passo 6.1 |
+| `VAPID_PRIVATE_KEY` | a Private Key do passo 6.1 |
+| `VAPID_SUBJECT` | `mailto:` seguido do seu e-mail, por exemplo `mailto:voce@gmail.com` |
+
+3. Na aba **Actions** do repositório, se aparecer um aviso, clique em **I understand my workflows, go ahead and enable them**.
+4. Para testar na hora: **Actions** → **Lembretes** → **Run workflow**. Se terminar com o sinal verde, está tudo certo.
+
+O robô roda a cada 5 minutos. O GitHub pode atrasar algumas execuções, então um aviso pode chegar alguns minutos depois do horário.
+
+### 6.4 Instalar no iPhone
+
+1. No iPhone (iOS 16.4 ou mais novo), abra o endereço do app no **Safari**.
+2. Toque em **Compartilhar** (o quadrado com a seta para cima) → **Adicionar à Tela de Início**.
+3. Abra a **Agenda** pelo ícone novo, entre com o login e toque em **Ativar avisos** → **Permitir**.
+
+O mesmo endereço também funciona no navegador do computador e em celulares Android sem o APK.
+
+## 7. Estrutura de pastas
 
 ```
-App.js                      navegação, fontes e abertura pelo aviso
-src/firebase.js             conexão com o Firebase (lê o .env)
-src/auth/AuthContext.js     login, criar conta, sair
-src/services/eventos.js     salvar/editar/excluir compromissos no Firestore
-src/services/lembretes.js   agendamento das notificações
-src/screens/                as telas
-src/theme.js                cores, fontes, tipos e opções de lembrete
-firestore.rules             regras de segurança do banco
+App.js                        navegação, fontes e abertura pelo aviso
+src/firebase.js               conexão com o Firebase (lê o .env); firebase.web.js é a versão web
+src/auth/AuthContext.js       login, criar conta, sair
+src/services/eventos.js       salvar/editar/excluir compromissos no Firestore
+src/services/lembretes.js     avisos agendados no próprio celular (APK)
+src/services/pushWeb.web.js   avisos da versão web (inscrição do aparelho)
+src/components/mapaHtml.js    o mapa (MapLibre + OpenFreeMap)
+src/screens/                  as telas
+src/theme.js                  cores, fontes, tipos e opções de lembrete
+public/                       ícones, manifest e service worker da versão web
+robo-lembretes/               robô que envia os avisos (roda no GitHub Actions)
+.github/workflows/            agendamento do robô (a cada 5 minutos)
+firestore.rules               regras de segurança do banco
+firebase.json                 configuração da hospedagem da versão web
 ```
 
 ## Próximos passos possíveis

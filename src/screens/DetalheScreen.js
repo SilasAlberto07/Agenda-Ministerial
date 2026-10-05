@@ -1,5 +1,6 @@
 import { useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform } from 'react-native';
+import { Alert } from '../utils/alerta';
 import MapaWeb from '../components/MapaWeb';
 import { useAuth } from '../auth/AuthContext';
 import { useEventos } from '../services/EventosContext';
@@ -39,10 +40,13 @@ export default function DetalheScreen({ navigation, route }) {
   const abrirRota = () => {
     const { latitude, longitude } = ev.local;
     const destino = `${latitude},${longitude}`;
+    const iphoneWeb = Platform.OS === 'web' && /iPhone|iPad/.test(navigator.userAgent);
     const url =
       Platform.OS === 'ios'
         ? `maps://?daddr=${destino}`
-        : `https://www.google.com/maps/dir/?api=1&destination=${destino}`;
+        : iphoneWeb
+          ? `https://maps.apple.com/?daddr=${destino}`
+          : `https://www.google.com/maps/dir/?api=1&destination=${destino}`;
     Linking.openURL(url).catch(() =>
       Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destino}`)
     );

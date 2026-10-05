@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from 
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Notifications } from './src/services/notificacoes';
+import { registrarServiceWorker, renovarInscricao, ouvirToqueNoAviso } from './src/services/pushWeb';
 import { useFonts, Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
 import { Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 
@@ -25,6 +26,8 @@ import PerfilScreen from './src/screens/PerfilScreen';
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
 const navRef = createNavigationContainerRef();
+
+registrarServiceWorker();
 
 const tema = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: cores.fundo, primary: cores.vinho } };
 
@@ -54,16 +57,29 @@ function Abas() {
 
 function Rotas() {
   const { usuario, carregando } = useAuth();
+  const pendente = useRef(null);
+
+  // Abre o compromisso (agora, ou assim que a navegação estiver pronta)
+  const abrirDetalhe = (id) => {
+    if (!id) return;
+    if (navRef.isReady() && usuario) navRef.navigate('Detalhe', { id });
+    else pendente.current = id;
+  };
+
   // Ao tocar no lembrete, abre o compromisso
   useEffect(() => {
     if (!Notifications || !usuario) return;
-    const abrir = (resp) => {
-      const id = resp?.notification?.request?.content?.data?.eventoId;
-      if (id && navRef.isReady()) navRef.navigate('Detalhe', { id });
-    };
+    const abrir = (resp) => abrirDetalhe(resp?.notification?.request?.content?.data?.eventoId);
     abrir(Notifications.getLastNotificationResponse());
     const sub = Notifications.addNotificationResponseReceivedListener(abrir);
     return () => sub.remove();
+  }, [usuario]);
+
+  // Versão web: toque no aviso e manutenção da inscrição deste aparelho
+  useEffect(() => {
+    if (!usuario) return;
+    renovarInscricao(usuario.uid);
+    return ouvirToqueNoAviso(abrirDetalhe);
   }, [usuario]);
 
   if (carregando) {
@@ -75,7 +91,17 @@ function Rotas() {
   }
 
   return (
-    <NavigationContainer ref={navRef} theme={tema}>
+    <NavigationContainer
+      ref={navRef}
+      theme={tema}
+      documentTitle={{ formatter: () => 'Agenda Ministerial' }}
+      onReady={() => {
+        if (pendente.current && usuario) {
+          navRef.navigate('Detalhe', { id: pendente.current });
+          pendente.current = null;
+        }
+      }}
+    >
       <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: cores.fundo },

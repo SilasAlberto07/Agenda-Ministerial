@@ -25,7 +25,15 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro",
+      "name": "Agenda Ministerial",
+      "shortName": "Agenda",
+      "lang": "pt-BR",
+      "themeColor": "#6E1A37",
+      "backgroundColor": "#F6F2EC",
+      "description": "Agenda de cultos e congressos para pregadores e cantores"
     },
     "plugins": [
       "@react-native-community/datetimepicker",

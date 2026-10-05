@@ -41,7 +41,7 @@ export default function EscolherLocalScreen({ navigation, route }) {
     setBuscando(true);
     setAviso('');
     try {
-      const lista = await buscarLocais(texto.trim());
+      const lista = await buscarLocais(texto.trim(), minhaPosicao);
       setResultados(lista);
       if (lista.length) escolher(lista[0]);
       else setAviso('Nada encontrado. Tente incluir o bairro e a cidade.');

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
+import { Alert } from '../utils/alerta';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Botao, Campo } from '../components/ui';
 import { IconeCalendario } from '../components/icones';

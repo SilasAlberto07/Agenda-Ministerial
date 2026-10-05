@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
+import { Alert } from '../utils/alerta';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Notifications, notificacoesDisponiveis } from '../services/notificacoes';
 import { useAuth } from '../auth/AuthContext';
@@ -6,6 +7,8 @@ import { Botao } from '../components/ui';
 import { Icone } from '../components/icones';
 import { cores, fontes } from '../theme';
 import { prepararNotificacoes, cancelarTodosLembretes } from '../services/lembretes';
+import { desativarAvisos } from '../services/pushWeb';
+import CartaoAvisos from '../components/CartaoAvisos';
 
 export default function PerfilScreen() {
   const { usuario, sair } = useAuth();
@@ -26,13 +29,14 @@ export default function PerfilScreen() {
   };
 
   const confirmarSair = () =>
-    Alert.alert('Sair da conta?', 'Os lembretes deste celular serão desligados até você entrar de novo.', [
+    Alert.alert('Sair da conta?', 'Os lembretes deste aparelho serão desligados até você entrar de novo.', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Sair',
         style: 'destructive',
         onPress: async () => {
           await cancelarTodosLembretes();
+          await desativarAvisos(usuario.uid);
           await sair();
         },
       },
@@ -50,13 +54,16 @@ export default function PerfilScreen() {
           <Text style={st.email}>{usuario?.email}</Text>
         </View>
       </View>
+      <CartaoAvisos />
       <View style={{ gap: 12 }}>
-        <Botao
-          titulo="Testar notificação"
-          variante="secundario"
-          onPress={testarAviso}
-          icone={<Icone nome="notifications-outline" tamanho={18} />}
-        />
+        {Platform.OS !== 'web' && (
+          <Botao
+            titulo="Testar notificação"
+            variante="secundario"
+            onPress={testarAviso}
+            icone={<Icone nome="notifications-outline" tamanho={18} />}
+          />
+        )}
         <Botao
           titulo="Sair"
           variante="secundario"

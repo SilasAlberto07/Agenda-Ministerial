@@ -1,0 +1,66 @@
+# Robô de lembretes da Agenda Ministerial
+# A cada 5 minutos confere os compromissos e envia os avisos para os aparelhos
+# da versão web (iPhone pela tela inicial). Precisa dos secrets descritos no LEIA-ME.
+name: Lembretes
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      simular:
+        description: 'Só simular (não envia avisos)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: lembretes
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          sparse-checkout: robo-lembretes
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: robo-lembretes/package-lock.json
+
+      - name: Instalar
+        working-directory: robo-lembretes
+        run: npm ci --omit=dev --no-audit --no-fund
+
+      - name: Enviar lembretes
+        working-directory: robo-lembretes
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          FUSO_HORARIO: America/Cuiaba
+          SIMULAR: ${{ inputs.simular && '1' || '' }}
+        run: node enviar.mjs
+
+      # O GitHub desliga agendamentos de repositórios sem atividade por 60 dias.
+      # Este passo faz um commit vazio a cada ~50 dias para o robô nunca parar.
+      - name: Manter o robô ativo
+        if: github.event_name == 'schedule'
+        run: |
+          git fetch --depth=1 origin "${GITHUB_REF_NAME}"
+          ultimo=$(git log -1 --format=%ct "origin/${GITHUB_REF_NAME}")
+          if [ $(( $(date +%s) - ultimo )) -gt $(( 50 * 24 * 3600 )) ]; then
+            git config user.name "robo-lembretes"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Mantém o robô de lembretes ativo"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

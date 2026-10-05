@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { Alert } from '../utils/alerta';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Botao, Campo, Pilula, Rotulo } from '../components/ui';
 import DataHora from '../components/DataHora';
@@ -9,6 +10,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useEventos } from '../services/EventosContext';
 import { criarEvento, atualizarEvento } from '../services/eventos';
 import { prepararNotificacoes } from '../services/lembretes';
+import { notificacoesDisponiveis } from '../services/notificacoes';
 
 function dataPadrao() {
   const d = new Date();
@@ -48,7 +50,7 @@ export default function NovoEventoScreen({ navigation, route }) {
     if (!nome.trim()) return Alert.alert('Falta o nome', 'Dê um nome para o compromisso.');
     setSalvando(true);
     try {
-      if (lembretes.length) {
+      if (lembretes.length && notificacoesDisponiveis) {
         const ok = await prepararNotificacoes();
         if (!ok)
           Alert.alert(
