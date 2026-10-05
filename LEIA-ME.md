@@ -61,7 +61,7 @@ npx eas-cli@latest login
 npx eas-cli@latest build --platform android
 ```
 
-O mapa usa OpenStreetMap, então não precisa de chave do Google Maps nem de conta de cobrança no Google.
+O mapa usa o OpenFreeMap (dados do OpenStreetMap): gratuito, sem chave e sem limite de uso, também para uso comercial.
 
 **Notificações no Android:** o Expo Go para Android não permite notificações. Elas funcionam no app instalado pelo APK e no iPhone.
 
