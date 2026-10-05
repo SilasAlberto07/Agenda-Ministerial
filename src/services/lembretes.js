@@ -1,11 +1,11 @@
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import { Notifications, notificacoesDisponiveis } from './notificacoes';
 import { hora, quantoFalta } from '../utils/datas';
 
 const CANAL = 'lembretes';
 
 // Mostra o aviso mesmo com o app aberto
-Notifications.setNotificationHandler({
+Notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList: true,
@@ -16,7 +16,7 @@ Notifications.setNotificationHandler({
 
 // Pede permissão e cria o canal no Android. Retorna true se puder notificar.
 export async function prepararNotificacoes() {
-  if (Platform.OS === 'web') return false;
+  if (!notificacoesDisponiveis) return false;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CANAL, {
       name: 'Lembretes da agenda',
@@ -41,7 +41,7 @@ const assinatura = (ev, minutos) =>
  * do Firebase e os avisos são agendados localmente.
  */
 export async function sincronizarLembretes(eventos) {
-  if (Platform.OS === 'web') return;
+  if (!notificacoesDisponiveis) return;
   const perm = await Notifications.getPermissionsAsync();
   if (perm.status !== 'granted') return;
 
@@ -82,6 +82,6 @@ export async function sincronizarLembretes(eventos) {
 }
 
 export async function cancelarTodosLembretes() {
-  if (Platform.OS === 'web') return;
+  if (!notificacoesDisponiveis) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }

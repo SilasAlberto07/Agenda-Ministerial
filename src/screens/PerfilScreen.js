@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
+import { Notifications, notificacoesDisponiveis } from '../services/notificacoes';
 import { useAuth } from '../auth/AuthContext';
 import { Botao } from '../components/ui';
 import { Icone } from '../components/icones';
@@ -11,6 +11,11 @@ export default function PerfilScreen() {
   const { usuario, sair } = useAuth();
 
   const testarAviso = async () => {
+    if (!notificacoesDisponiveis)
+      return Alert.alert(
+        'Avisos indisponíveis no Expo Go',
+        'No Android, o Expo Go não permite notificações. Elas funcionam quando o app é instalado pelo APK. Todo o resto do app funciona normalmente aqui.'
+      );
     const ok = await prepararNotificacoes();
     if (!ok) return Alert.alert('Notificações desativadas', 'Ative as notificações do app nas configurações do celular.');
     await Notifications.scheduleNotificationAsync({

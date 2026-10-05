@@ -5,7 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import * as Notifications from 'expo-notifications';
+import { Notifications } from './src/services/notificacoes';
 import { useFonts, Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
 import { Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 
@@ -54,13 +54,17 @@ function Abas() {
 
 function Rotas() {
   const { usuario, carregando } = useAuth();
-  const resposta = Notifications.useLastNotificationResponse();
-
   // Ao tocar no lembrete, abre o compromisso
   useEffect(() => {
-    const id = resposta?.notification?.request?.content?.data?.eventoId;
-    if (id && usuario && navRef.isReady()) navRef.navigate('Detalhe', { id });
-  }, [resposta, usuario]);
+    if (!Notifications || !usuario) return;
+    const abrir = (resp) => {
+      const id = resp?.notification?.request?.content?.data?.eventoId;
+      if (id && navRef.isReady()) navRef.navigate('Detalhe', { id });
+    };
+    abrir(Notifications.getLastNotificationResponse());
+    const sub = Notifications.addNotificationResponseReceivedListener(abrir);
+    return () => sub.remove();
+  }, [usuario]);
 
   if (carregando) {
     return (
