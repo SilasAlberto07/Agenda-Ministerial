@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import MapaWeb from '../components/MapaWeb';
 import * as Location from 'expo-location';
 import { Botao } from '../components/ui';
 import { Icone } from '../components/icones';
@@ -9,8 +9,7 @@ import { cores, fontes } from '../theme';
 import { buscarLocais, enderecoDe, distanciaKm, textoKm } from '../utils/enderecos';
 
 // Centro inicial (Brasil) até descobrir a localização da pessoa
-const REGIAO_INICIAL = { latitude: -14.235, longitude: -51.925, latitudeDelta: 30, longitudeDelta: 30 };
-const zoom = (c) => ({ latitude: c.latitude, longitude: c.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 });
+const CENTRO_BRASIL = { latitude: -14.235, longitude: -51.925, zoom: 4 };
 
 export default function EscolherLocalScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -32,7 +31,7 @@ export default function EscolherLocalScreen({ navigation, route }) {
       }
       const pos = await Location.getCurrentPositionAsync({});
       setMinhaPosicao(pos.coords);
-      if (!inicial) mapa.current?.animateToRegion(zoom(pos.coords), 600);
+      if (!inicial) mapa.current?.centralizar(pos.coords, 15);
     })().catch(() => {});
   }, []);
 
@@ -55,12 +54,11 @@ export default function EscolherLocalScreen({ navigation, route }) {
 
   const escolher = (r) => {
     setSelecionado({ latitude: r.latitude, longitude: r.longitude, endereco: r.endereco || r.titulo, titulo: r.titulo });
-    mapa.current?.animateToRegion(zoom(r), 500);
+    mapa.current?.centralizar(r, 16);
   };
 
   // Tocar no mapa coloca o pino ali
-  const tocarNoMapa = async (e) => {
-    const c = e.nativeEvent.coordinate;
+  const tocarNoMapa = async (c) => {
     setSelecionado({ ...c, endereco: 'Buscando endereço…' });
     const info = await enderecoDe(c);
     setSelecionado({ ...c, endereco: info.endereco, titulo: info.titulo });
@@ -74,15 +72,14 @@ export default function EscolherLocalScreen({ navigation, route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#ECE8DF' }}>
-      <MapView
+      <MapaWeb
         ref={mapa}
         style={StyleSheet.absoluteFill}
-        initialRegion={inicial ? zoom(inicial) : REGIAO_INICIAL}
-        showsUserLocation
-        onPress={tocarNoMapa}
-      >
-        {selecionado && <Marker coordinate={selecionado} pinColor={cores.vinho} title={selecionado.titulo} />}
-      </MapView>
+        centro={inicial ? { ...inicial, zoom: 16 } : CENTRO_BRASIL}
+        minhaPosicao={minhaPosicao}
+        marcadores={selecionado ? [{ id: 'sel', latitude: selecionado.latitude, longitude: selecionado.longitude, cor: cores.vinho }] : []}
+        aoTocarMapa={tocarNoMapa}
+      />
 
       <View style={[st.topo, { top: insets.top + 8 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => navigation.goBack()} style={st.botaoRedondo}>
@@ -108,7 +105,7 @@ export default function EscolherLocalScreen({ navigation, route }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Minha localização"
-          onPress={() => mapa.current?.animateToRegion(zoom(minhaPosicao), 500)}
+          onPress={() => mapa.current?.centralizar(minhaPosicao, 16)}
           style={[st.botaoRedondo, st.botaoLocalizar]}
         >
           <Icone nome="locate" cor={cores.azul} />

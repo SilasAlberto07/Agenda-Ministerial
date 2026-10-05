@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import MapaWeb from '../components/MapaWeb';
 import { useEventos } from '../services/EventosContext';
 import { cores, fontes } from '../theme';
 import { dataLonga, hora } from '../utils/datas';
@@ -9,50 +9,37 @@ import { dataLonga, hora } from '../utils/datas';
 // Aba "Mapa": mostra onde ficam os próximos compromissos
 export default function MapaScreen({ navigation }) {
   const { eventos } = useEventos();
-  const mapa = useRef(null);
 
-  const comLocal = useMemo(() => {
+  const marcadores = useMemo(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    return eventos.filter((e) => e.local?.latitude && e.data >= hoje);
+    return eventos
+      .filter((e) => e.local?.latitude && e.data >= hoje)
+      .map((e) => ({
+        id: e.id,
+        latitude: e.local.latitude,
+        longitude: e.local.longitude,
+        cor: e.tipo === 'Congresso' ? '#B07A1E' : cores.vinho,
+        titulo: e.nome,
+        subtitulo: `${dataLonga(e.data)} às ${hora(e.data)}`,
+        abrir: true,
+      }));
   }, [eventos]);
-
-  useEffect(() => {
-    if (comLocal.length && mapa.current) {
-      setTimeout(() => {
-        mapa.current?.fitToCoordinates(
-          comLocal.map((e) => ({ latitude: e.local.latitude, longitude: e.local.longitude })),
-          { edgePadding: { top: 120, right: 60, bottom: 80, left: 60 }, animated: true }
-        );
-      }, 400);
-    }
-  }, [comLocal]);
 
   return (
     <View style={{ flex: 1 }}>
-      <MapView
-        ref={mapa}
+      <MapaWeb
         style={StyleSheet.absoluteFill}
-        showsUserLocation
-        initialRegion={{ latitude: -14.235, longitude: -51.925, latitudeDelta: 30, longitudeDelta: 30 }}
-      >
-        {comLocal.map((e) => (
-          <Marker
-            key={e.id}
-            coordinate={{ latitude: e.local.latitude, longitude: e.local.longitude }}
-            pinColor={e.tipo === 'Congresso' ? '#B07A1E' : cores.vinho}
-            title={e.nome}
-            description={`${dataLonga(e.data)} às ${hora(e.data)} — toque para abrir`}
-            onCalloutPress={() => navigation.navigate('Detalhe', { id: e.id })}
-          />
-        ))}
-      </MapView>
-      <SafeAreaView edges={['top']} pointerEvents="none">
+        marcadores={marcadores}
+        ajustarAosMarcadores
+        aoTocarMarcador={(id) => navigation.navigate('Detalhe', { id })}
+      />
+      <SafeAreaView edges={['top']} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>
         <View style={st.cartao}>
           <Text style={st.titulo}>Mapa da agenda</Text>
           <Text style={st.sub}>
-            {comLocal.length
-              ? `${comLocal.length} compromisso${comLocal.length > 1 ? 's' : ''} com local marcado`
+            {marcadores.length
+              ? `${marcadores.length} compromisso${marcadores.length > 1 ? 's' : ''} com local marcado. Toque no pino para abrir.`
               : 'Seus compromissos com local aparecem aqui'}
           </Text>
         </View>

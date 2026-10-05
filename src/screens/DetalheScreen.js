@@ -1,6 +1,6 @@
 import { useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Platform, Alert } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapaWeb from '../components/MapaWeb';
 import { useAuth } from '../auth/AuthContext';
 import { useEventos } from '../services/EventosContext';
 import { excluirEvento } from '../services/eventos';
@@ -79,13 +79,12 @@ export default function DetalheScreen({ navigation, route }) {
 
       {ev.local?.latitude ? (
         <View style={st.cartao}>
-          <MapView
+          <MapaWeb
             style={{ height: 140 }}
-            pointerEvents="none"
-            region={{ latitude: ev.local.latitude, longitude: ev.local.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
-          >
-            <Marker coordinate={ev.local} pinColor={cores.vinho} />
-          </MapView>
+            interativo={false}
+            centro={{ latitude: ev.local.latitude, longitude: ev.local.longitude, zoom: 16 }}
+            marcadores={[{ id: ev.id, latitude: ev.local.latitude, longitude: ev.local.longitude, cor: cores.vinho }]}
+          />
           <View style={{ padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Text style={[st.texto, { flex: 1, fontFamily: fontes.forte }]}>{ev.local.endereco}</Text>
             <Botao

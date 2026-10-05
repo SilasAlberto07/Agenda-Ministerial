@@ -61,13 +61,9 @@ npx eas-cli@latest login
 npx eas-cli@latest build --platform android
 ```
 
-Antes de publicar, crie uma **chave da API do Google Maps** (Google Cloud Console → APIs → Maps SDK for Android/iOS) e coloque no `app.json`, dentro de `plugins`:
+O mapa usa OpenStreetMap, então não precisa de chave do Google Maps nem de conta de cobrança no Google.
 
-```json
-["react-native-maps", { "androidGoogleMapsApiKey": "SUA_CHAVE", "iosGoogleMapsApiKey": "SUA_CHAVE" }]
-```
-
-No Expo Go o mapa funciona sem chave.
+**Notificações no Android:** o Expo Go para Android não permite notificações. Elas funcionam no app instalado pelo APK e no iPhone.
 
 ## 6. Estrutura de pastas
 
