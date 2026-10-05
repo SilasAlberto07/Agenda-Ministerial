@@ -56,6 +56,14 @@
         "projectId": "fec4c4ff-6e19-49a8-9eb2-c805c91ea57a"
       }
     },
-    "owner": "silasalberto"
+    "owner": "silasalberto",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fec4c4ff-6e19-49a8-9eb2-c805c91ea57a",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }

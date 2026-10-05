@@ -65,6 +65,18 @@ O mapa usa o OpenFreeMap (dados do OpenStreetMap): gratuito, sem chave e sem lim
 
 **Notificações no Android:** o Expo Go para Android não permite notificações. Elas funcionam no app instalado pelo APK.
 
+## Como atualizar o app depois de uma mudança
+
+```bash
+git pull
+npm run web:publicar          # iPhone / versão web: basta fechar e abrir o app
+npm run android:atualizar     # Android: o APK baixa a novidade sozinho ao abrir
+```
+
+No Android, a atualização é baixada quando o app abre e aparece na **próxima** vez que ele for aberto.
+
+Só é preciso gerar um APK novo (`npm run android:apk`) quando a mudança mexer na parte nativa do app (permissão nova, biblioteca nativa nova). Nesses casos a versão em `app.json` (`"version"`) é aumentada, por exemplo de `1.0.0` para `1.1.0`, para o APK antigo não receber uma atualização que ele não aguenta.
+
 ## 6. Versão para iPhone (web) com avisos
 
 O iPhone instala o app pelo Safari, sem App Store e sem conta da Apple. A agenda é a mesma do Android, e os avisos são enviados por um robô que roda de graça no GitHub Actions.
