@@ -94,7 +94,9 @@ export default function NovoEventoScreen({ navigation, route }) {
                   onPress={() => setTipo(t)}
                   style={[st.segmento, tipo === t && st.segmentoAtivo]}
                 >
-                  <Text style={st.segmentoTexto}>{t}</Text>
+                  <Text style={st.segmentoTexto} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                    {t}
+                  </Text>
                 </Pressable>
               ))}
             </View>
@@ -161,12 +163,12 @@ export default function NovoEventoScreen({ navigation, route }) {
 const st = StyleSheet.create({
   form: { padding: 24, paddingTop: 12, gap: 18 },
   segmentado: { flexDirection: 'row', gap: 6, backgroundColor: cores.bordaSuave, padding: 4, borderRadius: 14 },
-  segmento: { flex: 1, height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  segmento: { flexGrow: 1, flexBasis: 'auto', height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   segmentoAtivo: {
     backgroundColor: cores.cartao, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 }, elevation: 2,
   },
-  segmentoTexto: { fontFamily: fontes.forte, fontSize: 15, color: cores.tinta },
+  segmentoTexto: { fontFamily: fontes.forte, fontSize: 13, color: cores.tinta },
   local: {
     minHeight: 60, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: '#B9AEA1',
     backgroundColor: cores.cartao, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12,

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
 import { useEventos } from '../services/EventosContext';
@@ -8,7 +8,7 @@ import CartaoAvisos from '../components/CartaoAvisos';
 import { cores, fontes, corDoTipo } from '../theme';
 import { semanaAtual, mesmoDia, diaSemanaCurto, mesCurto, hora } from '../utils/datas';
 
-const FILTROS = ['Todos', 'Cultos', 'Congressos'];
+const FILTROS = ['Todos', 'Cultos', 'Congressos', 'Festividades'];
 
 export default function AgendaScreen({ navigation }) {
   const { usuario } = useAuth();
@@ -27,6 +27,7 @@ export default function AgendaScreen({ navigation }) {
       } else if (e.data < inicioHoje) return false;
       if (filtro === 'Cultos') return e.tipo === 'Culto';
       if (filtro === 'Congressos') return e.tipo === 'Congresso';
+      if (filtro === 'Festividades') return e.tipo === 'Festividade';
       return true;
     });
   }, [eventos, diaSel, filtro]);
@@ -65,7 +66,7 @@ export default function AgendaScreen({ navigation }) {
         })}
       </View>
 
-      <View style={st.filtros}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={st.filtros}>
         {FILTROS.map((f) => {
           const ativo = filtro === f;
           return (
@@ -74,7 +75,7 @@ export default function AgendaScreen({ navigation }) {
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
       {carregando ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={cores.vinho} />

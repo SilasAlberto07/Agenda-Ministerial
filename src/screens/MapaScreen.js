@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapaWeb from '../components/MapaWeb';
 import { useEventos } from '../services/EventosContext';
-import { cores, fontes } from '../theme';
+import { cores, fontes, corDoPino } from '../theme';
 import { dataLonga, hora } from '../utils/datas';
 
 // Aba "Mapa": mostra onde ficam os próximos compromissos
@@ -19,7 +19,7 @@ export default function MapaScreen({ navigation }) {
         id: e.id,
         latitude: e.local.latitude,
         longitude: e.local.longitude,
-        cor: e.tipo === 'Congresso' ? '#B07A1E' : cores.vinho,
+        cor: corDoPino(e.tipo),
         titulo: e.nome,
         subtitulo: `${dataLonga(e.data)} às ${hora(e.data)}`,
         abrir: true,

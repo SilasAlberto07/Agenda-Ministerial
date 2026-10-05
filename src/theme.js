@@ -24,11 +24,20 @@ export const fontes = {
 };
 
 // Tipos de compromisso e suas cores
-export const TIPOS = ['Culto', 'Congresso', 'Outro'];
+export const TIPOS = ['Culto', 'Congresso', 'Festividade', 'Outro'];
 export function corDoTipo(tipo) {
   if (tipo === 'Culto') return { fundo: cores.vinhoClaro, texto: cores.vinho };
   if (tipo === 'Congresso') return { fundo: cores.douradoClaro, texto: cores.dourado };
+  if (tipo === 'Festividade') return { fundo: '#E1EFE6', texto: '#1F6B3A' };
   return { fundo: '#E7ECEF', texto: '#334155' };
+}
+
+// Cor do pino no mapa
+export function corDoPino(tipo) {
+  if (tipo === 'Congresso') return '#B07A1E';
+  if (tipo === 'Festividade') return '#2E7D4F';
+  if (tipo === 'Outro') return '#475569';
+  return cores.vinho;
 }
 
 export const PARTICIPACOES = ['Pregar', 'Cantar', 'Pregar e cantar'];
