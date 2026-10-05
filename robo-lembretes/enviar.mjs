@@ -11,8 +11,9 @@ import webpush from 'web-push';
 const { FIREBASE_SERVICE_ACCOUNT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, SIMULAR } = process.env;
 for (const [nome, valor] of Object.entries({ FIREBASE_SERVICE_ACCOUNT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY })) {
   if (!valor) {
-    console.error(`Falta o secret ${nome}. Veja o LEIA-ME, seção "Avisos no iPhone".`);
-    process.exit(1);
+    // Sem as chaves o robô só avisa e encerra sem erro (para não gerar e-mails de falha)
+    console.warn(`Robô ainda não configurado: falta o secret ${nome}. Veja o LEIA-ME, seção 6.3.`);
+    process.exit(0);
   }
 }
 
