@@ -128,9 +128,10 @@ function Rotas() {
 }
 
 export default function App() {
-  const [fontesProntas] = useFonts({ Fraunces_600SemiBold, Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold });
+  const [fontesProntas, erroFontes] = useFonts({ Fraunces_600SemiBold, Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold });
 
-  if (!fontesProntas) return <View style={{ flex: 1, backgroundColor: cores.fundo }} />;
+  // Se alguma fonte falhar, o app abre mesmo assim (com a fonte padrão do aparelho)
+  if (!fontesProntas && !erroFontes) return <View style={{ flex: 1, backgroundColor: cores.fundo }} />;
 
   return (
     <SafeAreaProvider>
