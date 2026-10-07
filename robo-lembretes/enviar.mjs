@@ -17,7 +17,27 @@ for (const [nome, valor] of Object.entries({ FIREBASE_SERVICE_ACCOUNT, VAPID_PUB
   }
 }
 
-initializeApp({ credential: cert(JSON.parse(FIREBASE_SERVICE_ACCOUNT)) });
+// Lê a chave do Firebase: o conteúdo do arquivo .json (ou o mesmo conteúdo em base64).
+// Nunca mostra o valor no log, só diz o que está errado.
+function lerContaDeServico(texto) {
+  const limpo = texto.trim().replace(/^﻿/, '');
+  const tentativas = [limpo, Buffer.from(limpo, 'base64').toString('utf8').trim()];
+  for (const t of tentativas) {
+    try {
+      const conta = JSON.parse(t);
+      if (conta && typeof conta === 'object' && conta.private_key && conta.client_email) return conta;
+    } catch {}
+  }
+  console.error(
+    'O secret FIREBASE_SERVICE_ACCOUNT não tem o arquivo .json da conta de serviço.\n' +
+      'Ele precisa ser o conteúdo INTEIRO do arquivo baixado em Firebase → Configurações do projeto →\n' +
+      'Contas de serviço → Gerar nova chave privada (começa com { e termina com }). Veja o LEIA-ME, seção 6.3.\n' +
+      `(o valor cadastrado tem ${limpo.length} caracteres e começa com "${limpo.slice(0, 1)}")`
+  );
+  process.exit(1);
+}
+
+initializeApp({ credential: cert(lerContaDeServico(FIREBASE_SERVICE_ACCOUNT)) });
 const db = getFirestore();
 webpush.setVapidDetails(VAPID_SUBJECT || 'mailto:agenda@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
