@@ -41,6 +41,8 @@ export default function NovoEventoScreen({ navigation, route }) {
   // Recebe o local escolhido na tela do mapa
   useEffect(() => {
     if (route.params?.local) setLocal(route.params.local);
+    // Local vindo do Google Maps com nome (ex.: "Igreja Batista Central"): preenche a igreja se estiver vazia
+    if (route.params?.nomeLugar) setIgreja((atual) => atual || route.params.nomeLugar);
   }, [route.params?.local]);
 
   const alternarLembrete = (m) =>

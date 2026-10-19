@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { buscarNoPhoton, juntarResultados } from './buscaLugares';
 
 // Monta um endereço curto e legível a partir do resultado do geocoder do celular
 export function formatarEndereco(a) {
@@ -19,16 +20,24 @@ export async function enderecoDe(coord) {
   }
 }
 
-// Busca um texto (endereço, igreja, bairro) e devolve até 5 resultados com nome
-export async function buscarLocais(texto) {
+// Busca um texto (igreja, endereço, bairro): primeiro pelo nome do lugar (Photon),
+// depois pelo geocoder do celular; junta os dois sem repetir.
+async function buscarNoCelular(texto) {
   const coords = await Location.geocodeAsync(texto);
-  const primeiros = coords.slice(0, 5);
   return Promise.all(
-    primeiros.map(async (c, i) => {
+    coords.slice(0, 5).map(async (c, i) => {
       const { titulo, endereco } = await enderecoDe(c);
-      return { id: String(i), latitude: c.latitude, longitude: c.longitude, titulo: titulo || texto, endereco };
+      return { id: `g${i}`, latitude: c.latitude, longitude: c.longitude, titulo: titulo || texto, endereco };
     })
   );
+}
+
+export async function buscarLocais(texto, perto) {
+  const [porNome, porEndereco] = await Promise.all([
+    buscarNoPhoton(texto, perto).catch(() => []),
+    buscarNoCelular(texto).catch(() => []),
+  ]);
+  return juntarResultados(porNome, porEndereco);
 }
 
 export function distanciaKm(a, b) {

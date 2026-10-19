@@ -1,4 +1,7 @@
-// Versão web da busca de endereços: usa o Nominatim (OpenStreetMap), gratuito e sem chave.
+import { buscarNoPhoton, juntarResultados } from './buscaLugares';
+
+// Versão web da busca de endereços: Photon (nomes de lugares) + Nominatim (endereços),
+// os dois gratuitos e sem chave, baseados no OpenStreetMap.
 // O geocoder do expo-location não funciona no navegador.
 const BASE = 'https://nominatim.openstreetmap.org';
 
@@ -25,7 +28,7 @@ export async function enderecoDe(coord) {
   }
 }
 
-export async function buscarLocais(texto, perto) {
+async function buscarNoNominatim(texto, perto) {
   const params = new URLSearchParams({
     q: texto,
     format: 'jsonv2',
@@ -46,6 +49,14 @@ export async function buscarLocais(texto, perto) {
     titulo: titulo(r),
     endereco: formatar(r),
   }));
+}
+
+export async function buscarLocais(texto, perto) {
+  const [porNome, porEndereco] = await Promise.all([
+    buscarNoPhoton(texto, perto).catch(() => []),
+    buscarNoNominatim(texto, perto).catch(() => []),
+  ]);
+  return juntarResultados(porNome, porEndereco);
 }
 
 export function distanciaKm(a, b) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator, Keyboard } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator, Keyboard, Modal, Platform, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapaWeb from '../components/MapaWeb';
 import * as Location from 'expo-location';
@@ -7,6 +7,7 @@ import { Botao } from '../components/ui';
 import { Icone } from '../components/icones';
 import { cores, fontes } from '../theme';
 import { buscarLocais, enderecoDe, distanciaKm, textoKm } from '../utils/enderecos';
+import { abrirGoogleMaps, lerDoGoogleMaps } from '../utils/googleMaps';
 
 // Centro inicial (Brasil) até descobrir a localização da pessoa
 const CENTRO_BRASIL = { latitude: -14.235, longitude: -51.925, zoom: 4 };
@@ -21,6 +22,10 @@ export default function EscolherLocalScreen({ navigation, route }) {
   const [minhaPosicao, setMinhaPosicao] = useState(null);
   const [buscando, setBuscando] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [colarAberto, setColarAberto] = useState(false);
+  const [colado, setColado] = useState('');
+  const [lendo, setLendo] = useState(false);
+  const [erroColar, setErroColar] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -66,8 +71,53 @@ export default function EscolherLocalScreen({ navigation, route }) {
 
   const usar = () => {
     if (!selecionado) return;
-    const { latitude, longitude, endereco } = selecionado;
-    navigation.popTo('NovoEvento', { local: { latitude, longitude, endereco } }, { merge: true });
+    const { latitude, longitude, endereco, nomeLugar } = selecionado;
+    navigation.popTo('NovoEvento', { local: { latitude, longitude, endereco }, nomeLugar: nomeLugar || null }, { merge: true });
+  };
+
+  // ---- Google Maps ----------------------------------------------------------
+  const irParaGoogleMaps = () =>
+    abrirGoogleMaps({ texto, ponto: selecionado || minhaPosicao }).catch(() =>
+      setAviso('Não foi possível abrir o Google Maps.')
+    );
+
+  const abrirColar = async () => {
+    setErroColar('');
+    setColarAberto(true);
+    // No navegador dá para ler o que foi copiado (o iPhone pergunta antes)
+    if (Platform.OS === 'web' && navigator.clipboard?.readText) {
+      try {
+        const t = await navigator.clipboard.readText();
+        if (t) setColado(t);
+      } catch {}
+    }
+  };
+
+  const lerColado = async () => {
+    setErroColar('');
+    setLendo(true);
+    try {
+      const r = await lerDoGoogleMaps(colado, {
+        geocodificar: (t) => buscarLocais(t, minhaPosicao),
+        enderecoDe,
+      });
+      if (!r) {
+        setErroColar(
+          Platform.OS === 'web'
+            ? 'Não consegui achar o local. No app do Google Maps use Compartilhar → Copiar (que copia nome e endereço), ou cole o endereço.'
+            : 'Não consegui achar o local. Confira se colou o link ou o endereço do Google Maps.'
+        );
+        return;
+      }
+      const nomeLugar = r.titulo && r.titulo !== r.endereco ? r.titulo : null;
+      setSelecionado({ latitude: r.latitude, longitude: r.longitude, titulo: r.titulo, endereco: r.endereco, nomeLugar });
+      setResultados([]);
+      mapa.current?.centralizar(r, 17);
+      setColarAberto(false);
+      setColado('');
+    } finally {
+      setLendo(false);
+    }
   };
 
   return (
@@ -99,6 +149,17 @@ export default function EscolherLocalScreen({ navigation, route }) {
           />
           {buscando && <ActivityIndicator color={cores.vinho} />}
         </View>
+      </View>
+
+      <View style={[st.atalhos, { top: insets.top + 70 }]}>
+        <Pressable accessibilityRole="button" onPress={irParaGoogleMaps} style={st.atalho}>
+          <Icone nome="logo-google" cor={cores.tinta} tamanho={16} />
+          <Text style={st.atalhoTexto}>Abrir Google Maps</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={abrirColar} style={st.atalho}>
+          <Icone nome="clipboard-outline" cor={cores.tinta} tamanho={16} />
+          <Text style={st.atalhoTexto}>Colar local</Text>
+        </Pressable>
       </View>
 
       {minhaPosicao && (
@@ -138,6 +199,30 @@ export default function EscolherLocalScreen({ navigation, route }) {
         )}
         <Botao titulo="Usar este local" onPress={usar} desabilitado={!selecionado} style={{ marginTop: 4 }} />
       </View>
+
+      <Modal visible={colarAberto} transparent animationType="slide" onRequestClose={() => setColarAberto(false)}>
+        <KeyboardAvoidingView style={st.fundoModal} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={[st.folha, { paddingBottom: insets.bottom + 20 }]}>
+            <Text style={st.folhaTitulo}>Trazer local do Google Maps</Text>
+            <Text style={st.passo}>1. Toque em "Abrir Google Maps" e procure a igreja ou o endereço.</Text>
+            <Text style={st.passo}>2. No lugar certo, toque em Compartilhar → Copiar.</Text>
+            <Text style={st.passo}>3. Volte aqui e cole abaixo (toque e segure → Colar).</Text>
+            <TextInput
+              value={colado}
+              onChangeText={setColado}
+              multiline
+              autoFocus={!colado}
+              placeholder="Cole aqui o link ou o endereço"
+              placeholderTextColor={cores.texto3}
+              accessibilityLabel="Texto copiado do Google Maps"
+              style={st.campoColar}
+            />
+            {erroColar ? <Text style={st.erroColar}>{erroColar}</Text> : null}
+            <Botao titulo="Usar este local" onPress={lerColado} carregando={lendo} desabilitado={!colado.trim()} />
+            <Botao titulo="Cancelar" variante="secundario" onPress={() => setColarAberto(false)} />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -150,6 +235,21 @@ const st = StyleSheet.create({
   busca: { flex: 1, height: 52, borderRadius: 16, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, ...sombra },
   buscaInput: { flex: 1, fontFamily: fontes.normal, fontSize: 16, color: cores.tinta },
   botaoLocalizar: { position: 'absolute', right: 16, bottom: 300, borderRadius: 26 },
+  atalhos: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', gap: 8 },
+  atalho: {
+    flex: 1, height: 42, paddingHorizontal: 10, borderRadius: 21, backgroundColor: '#fff', flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 6, ...sombra,
+  },
+  atalhoTexto: { fontFamily: fontes.forte, fontSize: 13, color: cores.tinta },
+  fundoModal: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  folha: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 10 },
+  folhaTitulo: { fontFamily: fontes.titulo, fontSize: 22, color: cores.tinta, marginBottom: 4 },
+  passo: { fontFamily: fontes.normal, fontSize: 15, lineHeight: 21, color: cores.texto2 },
+  campoColar: {
+    minHeight: 96, borderRadius: 14, borderWidth: 1, borderColor: cores.borda, padding: 12, marginTop: 4,
+    fontFamily: fontes.normal, fontSize: 15, color: cores.tinta, textAlignVertical: 'top',
+  },
+  erroColar: { fontFamily: fontes.medio, fontSize: 14, lineHeight: 20, color: cores.erro },
   painel: {
     position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#fff', borderTopLeftRadius: 28,
     borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 10, gap: 10, ...sombra,

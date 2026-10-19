@@ -51,6 +51,8 @@ Na primeira vez, crie sua conta pela própria tela do app em **Criar conta**.
 | Histórico | Compromissos já realizados, por mês, com busca por igreja/cidade e filtros |
 | Perfil | Seus dados, avisos e sair |
 
+**Local pelo Google Maps:** na escolha do local, toque em **Abrir Google Maps**, ache a igreja, toque em **Compartilhar → Copiar**, volte e toque em **Colar local**. O app marca o ponto e preenche o nome da igreja. No detalhe de cada compromisso há o botão **Ver no Google Maps**. A busca do próprio app também procura igrejas e lugares pelo nome (Photon/OpenStreetMap, gratuito).
+
 **Agenda e Histórico:** às 23h do dia de cada compromisso (ou 2 horas depois do início, se começar tarde), ele sai da agenda e vai para a aba **Histórico**. Nada é apagado: dá para abrir, ver o local e apagar pelo próprio histórico.
 
 **Lembretes:** você escolhe avisar 1 dia, 3h, 2h ou 30 min antes. Os avisos são agendados no próprio celular e chegam mesmo com o app fechado. Se você entrar na conta em outro celular, os lembretes são agendados nele também automaticamente. Tocar no aviso abre o compromisso.
