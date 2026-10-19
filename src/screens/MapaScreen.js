@@ -8,13 +8,11 @@ import { dataLonga, hora } from '../utils/datas';
 
 // Aba "Mapa": mostra onde ficam os próximos compromissos
 export default function MapaScreen({ navigation }) {
-  const { eventos } = useEventos();
+  const { proximos } = useEventos();
 
   const marcadores = useMemo(() => {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    return eventos
-      .filter((e) => e.local?.latitude && e.data >= hoje)
+    return proximos
+      .filter((e) => e.local?.latitude)
       .map((e) => ({
         id: e.id,
         latitude: e.local.latitude,
@@ -24,7 +22,7 @@ export default function MapaScreen({ navigation }) {
         subtitulo: `${dataLonga(e.data)} às ${hora(e.data)}`,
         abrir: true,
       }));
-  }, [eventos]);
+  }, [proximos]);
 
   return (
     <View style={{ flex: 1 }}>

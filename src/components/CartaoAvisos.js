@@ -78,7 +78,7 @@ export default function CartaoAvisos({ compacto }) {
 }
 
 const st = StyleSheet.create({
-  cartao: { backgroundColor: cores.cartao, borderRadius: 18, borderWidth: 1, borderColor: cores.bordaSuave, padding: 14, gap: 12 },
+  cartao: { backgroundColor: cores.cartao, borderRadius: 18, borderWidth: 1, borderColor: cores.bordaSuave, padding: 14, gap: 12, flexShrink: 0 },
   linha: { flexDirection: 'row', gap: 12 },
   icone: { width: 36, height: 36, borderRadius: 10, backgroundColor: cores.vinhoClaro, alignItems: 'center', justifyContent: 'center' },
   titulo: { fontFamily: fontes.forte, fontSize: 15, color: cores.tinta },

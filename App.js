@@ -22,6 +22,7 @@ import EscolherLocalScreen from './src/screens/EscolherLocalScreen';
 import MapaScreen from './src/screens/MapaScreen';
 import DetalheScreen from './src/screens/DetalheScreen';
 import PerfilScreen from './src/screens/PerfilScreen';
+import HistoricoScreen from './src/screens/HistoricoScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -43,13 +44,14 @@ function Abas() {
         tabBarIcon: ({ color }) => (
           <Icone
             cor={color}
-            nome={{ Agenda: 'calendar-outline', Mapa: 'map-outline', Perfil: 'person-outline' }[route.name]}
+            nome={{ Agenda: 'calendar-outline', Mapa: 'map-outline', 'Histórico': 'time-outline', Perfil: 'person-outline' }[route.name]}
           />
         ),
       })}
     >
       <Tabs.Screen name="Agenda" component={AgendaScreen} />
       <Tabs.Screen name="Mapa" component={MapaScreen} />
+      <Tabs.Screen name="Histórico" component={HistoricoScreen} />
       <Tabs.Screen name="Perfil" component={PerfilScreen} />
     </Tabs.Navigator>
   );

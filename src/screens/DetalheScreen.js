@@ -8,11 +8,11 @@ import { excluirEvento } from '../services/eventos';
 import { Botao } from '../components/ui';
 import { Icone } from '../components/icones';
 import { cores, fontes, corDoTipo, LEMBRETES } from '../theme';
-import { dataLonga, hora } from '../utils/datas';
+import { dataLonga, dataCompleta, hora, realizado } from '../utils/datas';
 
 export default function DetalheScreen({ navigation, route }) {
   const { usuario } = useAuth();
-  const { eventos } = useEventos();
+  const { eventos, agora } = useEventos();
   const ev = eventos.find((e) => e.id === route.params?.id);
 
   useLayoutEffect(() => {
@@ -36,6 +36,7 @@ export default function DetalheScreen({ navigation, route }) {
   }
 
   const c = corDoTipo(ev.tipo);
+  const jaFoi = realizado(ev, agora);
 
   const abrirRota = () => {
     const { latitude, longitude } = ev.local;
@@ -53,7 +54,9 @@ export default function DetalheScreen({ navigation, route }) {
   };
 
   const excluir = () =>
-    Alert.alert('Excluir compromisso?', `"${ev.nome}" e os lembretes dele serão apagados.`, [
+    Alert.alert(
+      jaFoi ? 'Apagar do histórico?' : 'Excluir compromisso?',
+      jaFoi ? `"${ev.nome}" será apagado do histórico.` : `"${ev.nome}" e os lembretes dele serão apagados.`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Excluir',
@@ -68,16 +71,19 @@ export default function DetalheScreen({ navigation, route }) {
   return (
     <ScrollView style={st.tela} contentContainerStyle={{ padding: 24, paddingTop: 8, gap: 16, paddingBottom: 48 }}>
       <View style={{ gap: 8 }}>
-        <Text style={[st.tag, { color: c.texto, backgroundColor: c.fundo }]}>
-          {ev.tipo}
-          {ev.participacao ? ` · vou ${ev.participacao.toLowerCase()}` : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          <Text style={[st.tag, { color: c.texto, backgroundColor: c.fundo }]}>
+            {ev.tipo}
+            {ev.participacao ? ` · ${jaFoi ? '' : 'vou '}${ev.participacao.toLowerCase()}` : ''}
+          </Text>
+          {jaFoi ? <Text style={[st.tag, st.tagRealizado]}>Realizado</Text> : null}
+        </View>
         <Text style={st.titulo}>{ev.nome}</Text>
         {ev.igreja ? <Text style={st.sub}>{ev.igreja}</Text> : null}
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Info rotulo="Data" valor={dataLonga(ev.data)} />
+        <Info rotulo="Data" valor={jaFoi ? dataCompleta(ev.data) : dataLonga(ev.data)} />
         <Info rotulo="Horário" valor={hora(ev.data)} />
       </View>
 
@@ -101,6 +107,7 @@ export default function DetalheScreen({ navigation, route }) {
         </View>
       ) : null}
 
+      {!jaFoi && (
       <View style={[st.cartao, { padding: 14, gap: 10 }]}>
         <Text style={st.rotulo}>Lembretes</Text>
         {ev.lembretes?.length ? (
@@ -113,6 +120,7 @@ export default function DetalheScreen({ navigation, route }) {
           <Text style={st.texto}>Sem lembretes.</Text>
         )}
       </View>
+      )}
 
       {ev.observacoes ? (
         <View style={[st.cartao, { padding: 14, gap: 6 }]}>
@@ -123,7 +131,7 @@ export default function DetalheScreen({ navigation, route }) {
 
       <Pressable onPress={excluir} style={st.excluir}>
         <Icone nome="trash-outline" cor={cores.erro} tamanho={18} />
-        <Text style={st.excluirTexto}>Excluir compromisso</Text>
+        <Text style={st.excluirTexto}>{jaFoi ? 'Apagar do histórico' : 'Excluir compromisso'}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -144,6 +152,7 @@ const st = StyleSheet.create({
     alignSelf: 'flex-start', fontFamily: fontes.forte, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, overflow: 'hidden',
   },
+  tagRealizado: { color: '#1F6B3A', backgroundColor: '#E1EFE6' },
   titulo: { fontFamily: fontes.titulo, fontSize: 30, lineHeight: 34, color: cores.tinta },
   sub: { fontFamily: fontes.normal, fontSize: 15, color: cores.texto2 },
   cartao: { backgroundColor: cores.cartao, borderRadius: 18, borderWidth: 1, borderColor: cores.bordaSuave, overflow: 'hidden' },

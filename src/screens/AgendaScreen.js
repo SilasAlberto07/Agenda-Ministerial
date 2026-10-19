@@ -5,32 +5,30 @@ import { useAuth } from '../auth/AuthContext';
 import { useEventos } from '../services/EventosContext';
 import { Icone } from '../components/icones';
 import CartaoAvisos from '../components/CartaoAvisos';
-import { cores, fontes, corDoTipo } from '../theme';
-import { semanaAtual, mesmoDia, diaSemanaCurto, mesCurto, hora } from '../utils/datas';
+import CartaoEvento from '../components/CartaoEvento';
+import { cores, fontes } from '../theme';
+import { semanaAtual, mesmoDia, diaSemanaCurto } from '../utils/datas';
 
 const FILTROS = ['Todos', 'Cultos', 'Congressos', 'Festividades'];
 
 export default function AgendaScreen({ navigation }) {
   const { usuario } = useAuth();
-  const { eventos, carregando, erro } = useEventos();
+  const { proximos, historico, carregando, erro, agora } = useEventos();
   const [diaSel, setDiaSel] = useState(null);
   const [filtro, setFiltro] = useState('Todos');
   const semana = useMemo(() => semanaAtual(), []);
-  const hoje = new Date();
+  const hoje = agora;
 
+  // Só os que ainda vão acontecer; os realizados ficam na aba Histórico
   const lista = useMemo(() => {
-    const inicioHoje = new Date();
-    inicioHoje.setHours(0, 0, 0, 0);
-    return eventos.filter((e) => {
-      if (diaSel) {
-        if (!mesmoDia(e.data, diaSel)) return false;
-      } else if (e.data < inicioHoje) return false;
+    return proximos.filter((e) => {
+      if (diaSel && !mesmoDia(e.data, diaSel)) return false;
       if (filtro === 'Cultos') return e.tipo === 'Culto';
       if (filtro === 'Congressos') return e.tipo === 'Congresso';
       if (filtro === 'Festividades') return e.tipo === 'Festividade';
       return true;
     });
-  }, [eventos, diaSel, filtro]);
+  }, [proximos, diaSel, filtro]);
 
   const primeiroNome = (usuario?.displayName || '').split(' ').slice(0, 2).join(' ');
 
@@ -48,7 +46,7 @@ export default function AgendaScreen({ navigation }) {
       <View style={st.semana}>
         {semana.map((d) => {
           const ativo = diaSel && mesmoDia(d, diaSel);
-          const temEvento = eventos.some((e) => mesmoDia(e.data, d));
+          const temEvento = proximos.some((e) => mesmoDia(e.data, d));
           const ehHoje = mesmoDia(d, hoje);
           return (
             <Pressable
@@ -66,7 +64,7 @@ export default function AgendaScreen({ navigation }) {
         })}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={st.filtros}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.filtrosLinha} contentContainerStyle={st.filtros}>
         {FILTROS.map((f) => {
           const ativo = filtro === f;
           return (
@@ -81,6 +79,7 @@ export default function AgendaScreen({ navigation }) {
         <ActivityIndicator style={{ marginTop: 40 }} color={cores.vinho} />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={lista}
           keyExtractor={(e) => e.id}
           contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120, gap: 12 }}
@@ -91,7 +90,9 @@ export default function AgendaScreen({ navigation }) {
             <Text style={st.vazio}>
               {erro
                 ? 'Não foi possível carregar sua agenda. Verifique a internet e a configuração do Firebase.'
-                : 'Nenhum compromisso aqui ainda. Toque no + para adicionar.'}
+                : diaSel && historico.some((e) => mesmoDia(e.data, diaSel))
+                  ? 'Os compromissos deste dia já foram realizados. Veja na aba Histórico.'
+                  : 'Nenhum compromisso aqui ainda. Toque no + para adicionar.'}
             </Text>
           }
           renderItem={({ item }) => <CartaoEvento evento={item} onPress={() => navigation.navigate('Detalhe', { id: item.id })} />}
@@ -110,43 +111,12 @@ export default function AgendaScreen({ navigation }) {
   );
 }
 
-function CartaoEvento({ evento, onPress }) {
-  const c = corDoTipo(evento.tipo);
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [st.cartao, pressed && { opacity: 0.85 }]}>
-      <View style={[st.caixaData, { backgroundColor: c.fundo }]}>
-        <Text style={[st.mes, { color: c.texto }]}>{mesCurto(evento.data)}</Text>
-        <Text style={[st.diaGrande, { color: c.texto }]}>{String(evento.data.getDate()).padStart(2, '0')}</Text>
-      </View>
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text style={[st.tag, { color: c.texto }]}>
-          {evento.tipo}
-          {evento.participacao ? ` · ${evento.participacao.toLowerCase()}` : ''}
-        </Text>
-        <Text style={st.nome} numberOfLines={2}>{evento.nome}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-          <Icone nome="time-outline" tamanho={14} cor={cores.texto2} />
-          <Text style={st.info}>{hora(evento.data)}</Text>
-          {evento.local?.endereco ? (
-            <>
-              <Icone nome="location-outline" tamanho={14} cor={cores.texto2} />
-              <Text style={[st.info, { flexShrink: 1 }]} numberOfLines={1}>
-                {evento.igreja || evento.local.endereco}
-              </Text>
-            </>
-          ) : null}
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
 const st = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.fundo },
-  cabecalho: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, flexDirection: 'row', alignItems: 'center' },
+  cabecalho: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', flexShrink: 0 },
   saudacao: { fontFamily: fontes.normal, fontSize: 14, color: cores.texto2 },
   titulo: { fontFamily: fontes.titulo, fontSize: 30, color: cores.tinta },
-  semana: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingTop: 8 },
+  semana: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingTop: 8, flexShrink: 0 },
   dia: {
     flex: 1, height: 72, borderRadius: 16, borderWidth: 1, borderColor: '#E3DBD1', backgroundColor: cores.cartao,
     alignItems: 'center', justifyContent: 'center', gap: 2,
@@ -155,7 +125,9 @@ const st = StyleSheet.create({
   diaSemana: { fontFamily: fontes.medio, fontSize: 11, textTransform: 'uppercase', color: cores.texto2 },
   diaNum: { fontFamily: fontes.forte, fontSize: 18, color: cores.tinta },
   ponto: { width: 5, height: 5, borderRadius: 3 },
-  filtros: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 6 },
+  // flexShrink: 0 impede a lista de crescer por cima dos filtros
+  filtrosLinha: { flexGrow: 0, flexShrink: 0 },
+  filtros: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 10 },
   filtro: { height: 38, paddingHorizontal: 16, borderRadius: 19, borderWidth: 1, borderColor: cores.borda, justifyContent: 'center' },
   filtroAtivo: { backgroundColor: cores.tinta, borderColor: cores.tinta },
   filtroTexto: { fontFamily: fontes.forte, fontSize: 14, color: cores.tinta },
@@ -164,16 +136,6 @@ const st = StyleSheet.create({
     letterSpacing: 0.6, marginTop: 10, marginBottom: 2,
   },
   vazio: { fontFamily: fontes.normal, fontSize: 15, color: cores.texto2, textAlign: 'center', marginTop: 40, lineHeight: 22 },
-  cartao: {
-    flexDirection: 'row', gap: 14, backgroundColor: cores.cartao, borderRadius: 18, padding: 14,
-    borderWidth: 1, borderColor: cores.bordaSuave,
-  },
-  caixaData: { width: 56, height: 64, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  mes: { fontFamily: fontes.forte, fontSize: 11, textTransform: 'uppercase' },
-  diaGrande: { fontFamily: fontes.titulo, fontSize: 24 },
-  tag: { fontFamily: fontes.forte, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
-  nome: { fontFamily: fontes.forte, fontSize: 16, color: cores.tinta, lineHeight: 20 },
-  info: { fontFamily: fontes.normal, fontSize: 13, color: cores.texto2, marginRight: 6 },
   fab: {
     position: 'absolute', right: 24, bottom: 24, width: 60, height: 60, borderRadius: 30,
     backgroundColor: cores.vinho, alignItems: 'center', justifyContent: 'center',

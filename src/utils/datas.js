@@ -40,3 +40,16 @@ export function quantoFalta(minutos) {
   }
   return `em ${minutos} minutos`;
 }
+
+// Um compromisso sai da agenda e vai para o Histórico às 23h do dia dele.
+// Se começar tarde (ex.: vigília às 22h), sai 2 horas depois do início.
+export function fimDoCompromisso(data) {
+  const fim = new Date(data);
+  fim.setHours(23, 0, 0, 0);
+  return new Date(Math.max(fim.getTime(), data.getTime() + 2 * 3600000));
+}
+export const realizado = (evento, agora = new Date()) => agora >= fimDoCompromisso(evento.data);
+
+const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+export const mesAno = (d) => `${MESES_LONGOS[d.getMonth()]} de ${d.getFullYear()}`;
+export const dataCompleta = (d) => `${d.getDate()} de ${MESES_LONGOS[d.getMonth()]} de ${d.getFullYear()}`;
