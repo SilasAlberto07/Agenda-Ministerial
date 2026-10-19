@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, SectionList, TextInput, ActivityIndicator } from 'react-native';
 import { Alert } from '../utils/alerta';
+import { useAuth } from '../auth/AuthContext';
 import { Icone } from '../components/icones';
 import { cores, fontes } from '../theme';
 import {
@@ -9,6 +10,7 @@ import {
   bloquearAcesso,
   mudarLimite,
   removerAparelho,
+  excluirConta,
   LIMITE_PADRAO,
 } from '../services/acesso';
 
@@ -27,6 +29,7 @@ const quando = (ts) => {
 
 // Painel do administrador: liberar quem pagou, bloquear e controlar aparelhos
 export default function PainelAcessosScreen({ route }) {
+  const { usuario } = useAuth() || {};
   const [lista, setLista] = useState(route?.params?.listaTeste || null);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
@@ -43,6 +46,7 @@ export default function PainelAcessosScreen({ route }) {
     if (!lista) return [];
     const termo = normalizar(busca.trim());
     const filtrados = lista
+      .filter((a) => !a.excluido && (!a.excluir || a.uid === aberto))
       .filter((a) => !termo || normalizar(`${a.nome} ${a.email}`).includes(termo))
       .sort((a, b) => (b.criadoEm?.toMillis?.() || 0) - (a.criadoEm?.toMillis?.() || 0));
     const grupos = [
@@ -61,6 +65,23 @@ export default function PainelAcessosScreen({ route }) {
     }
   };
 
+  const confirmarExclusao = (a) =>
+    Alert.alert(
+      'Excluir conta?',
+      `${a.email} perde o acesso na hora. O login e toda a agenda dessa conta são apagados em alguns minutos. Não dá para desfazer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            await acao(excluirConta, a.uid);
+            setAberto(null);
+          },
+        },
+      ]
+    );
+
   const confirmarBloqueio = (a) =>
     Alert.alert('Bloquear acesso?', `${a.email} não vai mais conseguir usar o app.`, [
       { text: 'Cancelar', style: 'cancel' },
@@ -75,7 +96,7 @@ export default function PainelAcessosScreen({ route }) {
 
   if (!lista && !erro) return <ActivityIndicator style={{ marginTop: 40 }} color={cores.vinho} />;
 
-  const pendentes = lista ? lista.filter((a) => !a.liberado && !a.bloqueado).length : 0;
+  const pendentes = lista ? lista.filter((a) => !a.liberado && !a.bloqueado && !a.excluido).length : 0;
   const liberados = lista ? lista.filter((a) => a.liberado).length : 0;
 
   return (
@@ -190,6 +211,12 @@ export default function PainelAcessosScreen({ route }) {
                     <Pressable onPress={() => confirmarBloqueio(a)} style={st.bloquear}>
                       <Icone nome="ban-outline" cor={cores.erro} tamanho={16} />
                       <Text style={st.bloquearTexto}>Bloquear acesso</Text>
+                    </Pressable>
+                  ) : null}
+                  {a.uid !== usuario?.uid ? (
+                    <Pressable onPress={() => confirmarExclusao(a)} style={st.bloquear}>
+                      <Icone nome="trash-outline" cor={cores.erro} tamanho={16} />
+                      <Text style={st.bloquearTexto}>Excluir conta</Text>
                     </Pressable>
                   ) : null}
                 </View>

@@ -102,5 +102,10 @@ export const bloquearAcesso = (uid) => updateDoc(refAcesso(uid), { liberado: fal
 export const mudarLimite = (uid, limite) =>
   updateDoc(refAcesso(uid), { limiteAparelhos: Math.max(1, Math.min(20, limite)) });
 
+// Excluir conta: bloqueia na hora e marca para o robô (GitHub Actions) apagar
+// o login e todos os dados em alguns minutos (só o servidor pode apagar o login de outra pessoa).
+export const excluirConta = (uid) =>
+  updateDoc(refAcesso(uid), { liberado: false, bloqueado: true, excluir: true, excluirPedidoEm: serverTimestamp() });
+
 export const removerAparelho = (uid, aparelhoId) =>
   updateDoc(refAcesso(uid), { [`aparelhos.${aparelhoId}`]: deleteField() });

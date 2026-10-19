@@ -5,6 +5,7 @@
 
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import webpush from 'web-push';
 
 // ---- Configuração (vem dos "secrets" do GitHub) -----------------------------
@@ -98,7 +99,29 @@ async function enviarPara(inscricoes, mensagem) {
   return enviados;
 }
 
+// Contas marcadas para exclusão no Painel de acessos: apaga o login e todos os dados
+async function excluirContasMarcadas() {
+  const marcadas = await db.collection('acessos').where('excluir', '==', true).get();
+  for (const doc of marcadas.docs) {
+    const uid = doc.id;
+    try {
+      await db.recursiveDelete(db.doc(`users/${uid}`));
+      await getAuth()
+        .deleteUser(uid)
+        .catch((e) => {
+          if (e.code !== 'auth/user-not-found') throw e;
+        });
+      // Fica só uma marca de "excluída" (sem nome nem e-mail), para o app não pedir acesso de novo
+      await doc.ref.set({ excluido: true, liberado: false, bloqueado: true, limiteAparelhos: 0, aparelhos: {}, excluidoEm: FieldValue.serverTimestamp() });
+      console.log(`Conta excluída (${uid.slice(0, 6)}…)`);
+    } catch (e) {
+      console.warn(`Não foi possível excluir a conta ${uid.slice(0, 6)}…:`, e.message || e);
+    }
+  }
+}
+
 async function main() {
+  await excluirContasMarcadas().catch((e) => console.warn('Exclusão de contas:', e.message || e));
   const agora = Date.now();
   const ate = Timestamp.fromMillis(agora + (MAIOR_LEMBRETE_MIN + 5) * 60000);
   const desde = Timestamp.fromMillis(agora);

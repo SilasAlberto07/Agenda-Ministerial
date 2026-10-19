@@ -159,7 +159,7 @@ Depois, no seu celular, feche e abra o app: em **Perfil** aparece **Painel de ac
 
 - A pessoa instala o app (APK no Android, link no iPhone), toca em **Criar conta** e vê "Aguardando liberação".
 - Ela te paga (Pix). Você abre **Perfil → Painel de acessos** e toca em **Liberar acesso** na conta dela. O app dela abre a agenda sozinho.
-- No painel você também: aumenta ou diminui o **limite de aparelhos**, **remove** um aparelho antigo (quando a pessoa troca de celular) e **bloqueia** uma conta.
+- No painel você também: aumenta ou diminui o **limite de aparelhos**, **remove** um aparelho antigo (quando a pessoa troca de celular), **bloqueia** uma conta ou **exclui** uma conta (o acesso para na hora; o login e a agenda são apagados pelo robô em alguns minutos).
 
 ### 7.4 WhatsApp e preço na tela de liberação
 
