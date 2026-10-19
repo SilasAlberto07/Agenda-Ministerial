@@ -120,8 +120,38 @@ async function excluirContasMarcadas() {
   }
 }
 
+// Contas sem pedido de acesso (ex.: criadas por uma versão antiga do app):
+// cria o pedido "aguardando liberação" para aparecerem no Painel de acessos.
+async function criarPedidosFaltando() {
+  const existentes = new Set((await db.collection('acessos').select().get()).docs.map((d) => d.id));
+  let pagina;
+  let criados = 0;
+  do {
+    const r = await getAuth().listUsers(1000, pagina);
+    for (const u of r.users) {
+      if (existentes.has(u.uid)) continue;
+      const ref = db.doc(`acessos/${u.uid}`);
+      const criado = await ref
+        .create({
+          liberado: false,
+          limiteAparelhos: 2,
+          aparelhos: {},
+          email: u.email || '',
+          nome: u.displayName || '',
+          criadoEm: FieldValue.serverTimestamp(),
+        })
+        .then(() => true)
+        .catch(() => false); // já existe: não mexe
+      if (criado) criados++;
+    }
+    pagina = r.pageToken;
+  } while (pagina);
+  if (criados) console.log(`${criados} pedido(s) de acesso criado(s) para contas novas.`);
+}
+
 async function main() {
   await excluirContasMarcadas().catch((e) => console.warn('Exclusão de contas:', e.message || e));
+  await criarPedidosFaltando().catch((e) => console.warn('Pedidos de acesso:', e.message || e));
   const agora = Date.now();
   const ate = Timestamp.fromMillis(agora + (MAIOR_LEMBRETE_MIN + 5) * 60000);
   const desde = Timestamp.fromMillis(agora);
