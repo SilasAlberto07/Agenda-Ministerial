@@ -108,6 +108,10 @@ async function main() {
   for (const usuario of usuarios) {
     const inscricoes = (await usuario.collection('inscricoes').get()).docs;
     if (!inscricoes.length) continue; // ninguém da versão web nesta conta
+    // Conta sem acesso liberado (não pagou ou foi bloqueada) não recebe avisos.
+    // Contas de antes do controle de acesso (sem documento) continuam recebendo.
+    const acesso = await db.doc(`acessos/${usuario.id}`).get();
+    if (acesso.exists && acesso.data().liberado !== true) continue;
 
     const eventos = await usuario.collection('eventos').where('data', '>=', desde).where('data', '<=', ate).get();
     for (const ev of eventos.docs) {

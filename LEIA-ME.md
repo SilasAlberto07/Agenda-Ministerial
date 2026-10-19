@@ -133,7 +133,39 @@ O robô roda a cada 5 minutos. O GitHub pode atrasar algumas execuções, então
 
 O mesmo endereço também funciona no navegador do computador e em celulares Android sem o APK.
 
-## 7. Estrutura de pastas
+## 7. Venda e controle de acesso (pagamento único)
+
+Quem instala o app e cria uma conta fica **aguardando liberação**. Só depois que você libera (quando a pessoa pagou) a agenda abre. Um instalador repassado não adianta: sem a sua liberação, o app não funciona. Cada conta tem um **limite de aparelhos** (2 por padrão), para a senha não ser espalhada.
+
+### 7.1 Configuração inicial (uma vez só, ANTES de publicar esta versão)
+
+1. No GitHub: aba **Actions** → **Configurar acesso** → **Run workflow**.
+2. Em "E-mail da sua conta no app", coloque o e-mail com que **você entra no app**. Deixe marcado "Liberar as contas que já existem hoje".
+3. Clique no botão verde e espere ficar verde ✓.
+
+Isso marca você como administrador e libera as contas que já existem (a sua, a da sua dupla e quem mais já usa), para ninguém ficar travado.
+
+### 7.2 Publicar
+
+```bash
+git pull
+npm run web:publicar
+npm run android:atualizar
+```
+
+Depois, no seu celular, feche e abra o app: em **Perfil** aparece **Painel de acessos**.
+
+### 7.3 No dia a dia
+
+- A pessoa instala o app (APK no Android, link no iPhone), toca em **Criar conta** e vê "Aguardando liberação".
+- Ela te paga (Pix). Você abre **Perfil → Painel de acessos** e toca em **Liberar acesso** na conta dela. O app dela abre a agenda sozinho.
+- No painel você também: aumenta ou diminui o **limite de aparelhos**, **remove** um aparelho antigo (quando a pessoa troca de celular) e **bloqueia** uma conta.
+
+### 7.4 WhatsApp e preço na tela de liberação
+
+No arquivo `src/config.js`, preencha `whatsapp` (só números, com 55 e DDD, ex.: `5566999998888`) e, se quiser, `oferta` (ex.: `Acesso vitalício por R$ 49,90 no Pix`). Depois publique de novo. Aparece um botão "Falar no WhatsApp" com uma mensagem pronta e o e-mail da pessoa.
+
+## 8. Estrutura de pastas
 
 ```
 App.js                        navegação, fontes e abertura pelo aviso

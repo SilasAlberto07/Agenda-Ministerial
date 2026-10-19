@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
+import { useAcesso } from './AcessoContext';
 import { ouvirEventos } from './eventos';
 import { prepararNotificacoes, sincronizarLembretes } from './lembretes';
 import { realizado } from '../utils/datas';
@@ -24,6 +25,8 @@ function useAgora() {
 
 export function EventosProvider({ children }) {
   const { usuario } = useAuth();
+  const { estado } = useAcesso();
+  const liberado = estado === 'ok';
   const [eventos, setEventos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
@@ -34,7 +37,8 @@ export function EventosProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!usuario) {
+    // A agenda só é lida depois que a conta está liberada neste aparelho
+    if (!usuario || !liberado) {
       setEventos([]);
       return;
     }
@@ -52,7 +56,7 @@ export function EventosProvider({ children }) {
         setCarregando(false);
       }
     );
-  }, [usuario?.uid]);
+  }, [usuario?.uid, liberado]);
 
   // proximos: ainda vão acontecer (ordem por data) · historico: já realizados (mais recente primeiro)
   const { proximos, historico } = useMemo(() => {

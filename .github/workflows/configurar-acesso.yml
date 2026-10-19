@@ -1,0 +1,46 @@
+# Configuração inicial do controle de acesso (rodar uma vez, pelo botão "Run workflow"):
+# marca o administrador e libera as contas que já existem.
+name: Configurar acesso
+
+on:
+  workflow_dispatch:
+    inputs:
+      email_admin:
+        description: 'E-mail da sua conta no app (administrador)'
+        required: true
+        type: string
+      liberar_existentes:
+        description: 'Liberar as contas que já existem hoje'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  configurar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          sparse-checkout: robo-lembretes
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: robo-lembretes/package-lock.json
+
+      - name: Instalar
+        working-directory: robo-lembretes
+        run: npm ci --omit=dev --no-audit --no-fund
+
+      - name: Configurar
+        working-directory: robo-lembretes
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          ADMIN_EMAIL: ${{ inputs.email_admin }}
+          LIBERAR_EXISTENTES: ${{ inputs.liberar_existentes && 'true' || 'false' }}
+        run: node configurar-acesso.mjs

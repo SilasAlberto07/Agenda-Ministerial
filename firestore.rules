@@ -1,13 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Cada pessoa só lê e escreve a própria agenda
+
+    // ---- Quem é quem ---------------------------------------------------------
+    // Administrador: marcado pela configuração inicial (GitHub → Actions → "Configurar acesso")
+    function admin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    function dono(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    // Conta liberada pelo administrador (pagou)
+    function liberado(uid) {
+      let caminho = /databases/$(database)/documents/acessos/$(uid);
+      return exists(caminho) && get(caminho).data.liberado == true;
+    }
+
+    // ---- Agenda --------------------------------------------------------------
+    // Cada pessoa só lê e escreve a própria agenda, e só se a conta estiver liberada
     match /users/{uid}/eventos/{eventoId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if dono(uid) && liberado(uid);
     }
     // Aparelhos (versão web/iPhone) que recebem os avisos do robô de lembretes
     match /users/{uid}/inscricoes/{inscricaoId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if dono(uid) && liberado(uid);
+    }
+
+    // ---- Acesso ao app ---------------------------------------------------------
+    // acessos/{uid}: { liberado, limiteAparelhos, aparelhos: { id: {...} }, email, nome, criadoEm, ultimoAcesso }
+    match /acessos/{uid} {
+      allow read: if dono(uid) || admin();
+      allow list: if admin();
+
+      // Ao criar a conta, a pessoa pede acesso: entra sempre como NÃO liberada
+      allow create: if dono(uid)
+        && request.resource.data.liberado == false
+        && request.resource.data.limiteAparelhos == 2
+        && request.resource.data.aparelhos.size() == 0
+        && request.resource.data.keys().hasOnly(['liberado', 'limiteAparelhos', 'aparelhos', 'email', 'nome', 'criadoEm']);
+
+      // A própria pessoa só pode registrar seus aparelhos, até o limite, e só se já estiver liberada.
+      // Liberar, bloquear, mudar o limite ou remover aparelhos: só o administrador.
+      allow update: if admin() || (
+        dono(uid)
+        && resource.data.liberado == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aparelhos', 'ultimoAcesso', 'nome'])
+        && request.resource.data.aparelhos.size() <= resource.data.limiteAparelhos
+        && request.resource.data.aparelhos.keys().hasAll(resource.data.aparelhos.keys())
+      );
+
+      allow delete: if admin();
     }
   }
 }

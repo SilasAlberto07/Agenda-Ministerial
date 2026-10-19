@@ -8,6 +8,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { pedirAcesso } from '../services/acesso';
 
 export const AuthContext = createContext(null);
 
@@ -28,6 +29,8 @@ export function AuthProvider({ children }) {
     entrar: (email, senha) => signInWithEmailAndPassword(auth, email.trim(), senha),
     criarConta: async (nome, email, senha) => {
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), senha);
+      // Pede acesso ao app: a conta fica aguardando o administrador liberar
+      await pedirAcesso(cred.user, nome).catch(() => {});
       if (nome) {
         await updateProfile(cred.user, { displayName: nome.trim() });
         setUsuario({ ...cred.user, displayName: nome.trim() });

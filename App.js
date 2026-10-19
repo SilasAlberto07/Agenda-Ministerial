@@ -12,6 +12,7 @@ import { Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold } from '@expo-
 
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { EventosProvider } from './src/services/EventosContext';
+import { AcessoProvider, useAcesso } from './src/services/AcessoContext';
 import { Icone } from './src/components/icones';
 import { cores, fontes } from './src/theme';
 
@@ -23,6 +24,8 @@ import MapaScreen from './src/screens/MapaScreen';
 import DetalheScreen from './src/screens/DetalheScreen';
 import PerfilScreen from './src/screens/PerfilScreen';
 import HistoricoScreen from './src/screens/HistoricoScreen';
+import AcessoScreen from './src/screens/AcessoScreen';
+import PainelAcessosScreen from './src/screens/PainelAcessosScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -59,6 +62,7 @@ function Abas() {
 
 function Rotas() {
   const { usuario, carregando } = useAuth();
+  const { estado, admin } = useAcesso();
   const pendente = useRef(null);
 
   // Abre o compromisso (agora, ou assim que a navegação estiver pronta)
@@ -79,10 +83,10 @@ function Rotas() {
 
   // Versão web: toque no aviso e manutenção da inscrição deste aparelho
   useEffect(() => {
-    if (!usuario) return;
+    if (!usuario || estado !== 'ok') return;
     renovarInscricao(usuario.uid);
     return ouvirToqueNoAviso(abrirDetalhe);
-  }, [usuario]);
+  }, [usuario, estado]);
 
   if (carregando) {
     return (
@@ -91,6 +95,9 @@ function Rotas() {
       </View>
     );
   }
+
+  // Conta ainda não liberada, bloqueada ou no limite de aparelhos: mostra a tela de acesso
+  if (usuario && estado !== 'ok') return <AcessoScreen />;
 
   return (
     <NavigationContainer
@@ -122,6 +129,9 @@ function Rotas() {
             <Stack.Screen name="NovoEvento" component={NovoEventoScreen} options={{ title: 'Novo compromisso' }} />
             <Stack.Screen name="EscolherLocal" component={EscolherLocalScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Detalhe" component={DetalheScreen} />
+            {admin && (
+              <Stack.Screen name="PainelAcessos" component={PainelAcessosScreen} options={{ title: 'Acessos' }} />
+            )}
           </>
         )}
       </Stack.Navigator>
@@ -139,9 +149,11 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider>
-        <EventosProvider>
-          <Rotas />
-        </EventosProvider>
+        <AcessoProvider>
+          <EventosProvider>
+            <Rotas />
+          </EventosProvider>
+        </AcessoProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

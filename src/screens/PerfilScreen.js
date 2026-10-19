@@ -9,9 +9,11 @@ import { cores, fontes } from '../theme';
 import { prepararNotificacoes, cancelarTodosLembretes } from '../services/lembretes';
 import { desativarAvisos } from '../services/pushWeb';
 import CartaoAvisos from '../components/CartaoAvisos';
+import { useAcesso } from '../services/AcessoContext';
 
-export default function PerfilScreen() {
+export default function PerfilScreen({ navigation }) {
   const { usuario, sair } = useAuth();
+  const { admin } = useAcesso();
 
   const testarAviso = async () => {
     if (!notificacoesDisponiveis)
@@ -56,6 +58,13 @@ export default function PerfilScreen() {
       </View>
       <CartaoAvisos />
       <View style={{ gap: 12 }}>
+        {admin && (
+          <Botao
+            titulo="Painel de acessos"
+            onPress={() => navigation.navigate('PainelAcessos')}
+            icone={<Icone nome="shield-checkmark-outline" cor="#fff" tamanho={18} />}
+          />
+        )}
         {Platform.OS !== 'web' && (
           <Botao
             titulo="Testar notificação"
