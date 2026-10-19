@@ -53,7 +53,8 @@ export function coordenadasDoTexto(texto) {
   return null;
 }
 
-export function nomeDoLink(url) {
+// "/maps/place/Igreja X - Av. Tal, 10 - Bairro, Sinop - MT, 78559-477/..." → texto do lugar
+export function lugarDoLink(url) {
   const m = String(url || '').match(/\/maps\/place\/([^/@?]+)/);
   if (!m) return '';
   try {
@@ -63,11 +64,63 @@ export function nomeDoLink(url) {
   }
 }
 
+// Separa "Nome do lugar - Endereço, Cidade - UF, CEP" em { nome, endereco }.
+// Sem nome (o link era só um endereço), devolve tudo como endereço.
+export function separarNomeEndereco(texto) {
+  const t = String(texto || '').trim();
+  const partes = t.split(' - ');
+  for (let i = 1; i < partes.length; i++) {
+    const resto = partes.slice(i).join(' - ');
+    // O endereço tem vírgula e começa com rua/avenida/rodovia, ou termina com "Cidade - UF"
+    if (/,/.test(resto) && (/^(r\.|rua|av\.?|avenida|rod\.?|rodovia|al\.?|alameda|tv\.?|travessa|estr\.?|estrada|pç\.?|praça|br-|mt-)/i.test(resto) || i === 1)) {
+      const nome = partes.slice(0, i).join(' - ');
+      if (!/\d{5}-?\d{3}/.test(nome) && !/,/.test(nome)) return { nome, endereco: resto };
+    }
+  }
+  return { nome: '', endereco: t };
+}
+
+export const nomeDoLink = (url) => separarNomeEndereco(lugarDoLink(url)).nome || lugarDoLink(url);
+
+// Cidade de um endereço brasileiro: "..., Sinop - MT, 78559-477" → "Sinop"
+export function cidadeDoEndereco(endereco) {
+  const m = String(endereco || '').match(/,\s*([^,]+?)\s*-\s*([A-Z]{2})\b/);
+  return m ? m[1].trim() : '';
+}
+
+// Tira "Q 10", "Lt 03", "Quadra", "Lote", "Casa", CEP: atrapalham a busca de endereço.
+// "Av. X, Q 10 - Lt 03 - Bairro, Sinop - MT, 78559-477" → "Av. X, Bairro, Sinop, MT"
+const PARTE_INUTIL = /^(quadra|qda|qd|q|lote|lt|casa|cs|bloco|bl|sala|sl|apartamento|apto|ap)\.?\s*\d+[a-z]?$/i;
+export function limparEndereco(endereco) {
+  return String(endereco || '')
+    .split(/\s*,\s*|\s+-\s+/)
+    .map((p) => p.trim())
+    .filter((p) => p && !PARTE_INUTIL.test(p) && !/^\d{5}-?\d{3}$/.test(p))
+    .join(', ');
+}
+
+const normalizar = (t) =>
+  String(t || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
 const ehLinkCurto = (u) => /(maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs|share\.google)/i.test(u);
 
-// Abre o link curto (maps.app.goo.gl/...) para descobrir o endereço completo do lugar.
+// Coordenadas confiáveis dentro da página do Google (ponto exato do lugar).
+// Não usar outros números da página: podem ser da sua região, e não do lugar.
+function coordenadasDaPagina(html) {
+  const t = String(html || '');
+  for (const re of [new RegExp(`markers=${num}(?:,|%2C)${num}`, 'i'), new RegExp(`!3d${num}!4d${num}`)]) {
+    const m = t.match(re);
+    if (m && valido(Number(m[1]), Number(m[2]))) return { latitude: Number(m[1]), longitude: Number(m[2]) };
+  }
+  return null;
+}
+
+// Abre o link curto (maps.app.goo.gl/...) e devolve o link completo + coordenadas, se houver.
 // Funciona no app do celular; no navegador o Google bloqueia (aí usamos o texto copiado).
-async function abrirLinkCurto(url) {
+export async function abrirLinkCurto(url) {
   if (Platform.OS === 'web') return null;
   const controle = new AbortController();
   const tempo = setTimeout(() => controle.abort(), 10000);
@@ -75,16 +128,11 @@ async function abrirLinkCurto(url) {
     const r = await fetch(url, { signal: controle.signal, headers: { 'Accept-Language': 'pt-BR' } });
     const final = r.url || '';
     let coords = coordenadasDoTexto(final);
-    let nome = nomeDoLink(final);
     if (!coords) {
-      const html = await r.text();
-      coords = coordenadasDoTexto(html.slice(0, 200000));
-      if (!nome) {
-        const t = html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i);
-        if (t) nome = t[1].split('·')[0].trim();
-      }
+      const html = await r.text().catch(() => '');
+      coords = coordenadasDaPagina(html.slice(0, 300000));
     }
-    return coords ? { ...coords, nome } : null;
+    return { url: final, coords };
   } catch {
     return null;
   } finally {
@@ -97,7 +145,7 @@ async function abrirLinkCurto(url) {
  * e devolve { latitude, longitude, titulo, endereco }, ou null se não deu para entender.
  * `geocodificar(texto)` e `enderecoDe(coord)` vêm de utils/enderecos (celular ou web).
  */
-export async function lerDoGoogleMaps(colado, { geocodificar, enderecoDe }) {
+export async function lerDoGoogleMaps(colado, { geocodificar, enderecoDe, resolver = abrirLinkCurto }) {
   const texto = String(colado || '').trim();
   if (!texto) return null;
 
@@ -108,47 +156,62 @@ export async function lerDoGoogleMaps(colado, { geocodificar, enderecoDe }) {
     .split(/\n|\r/)
     .map((l) => l.trim())
     .filter(Boolean);
-  const nomeTexto = linhas[0] || '';
-  const enderecoTexto = linhas.slice(1).join(', ');
+  let nome = '';
+  let endereco = '';
+  if (linhas.length >= 2) {
+    nome = linhas[0];
+    endereco = linhas.slice(1).join(', ');
+  } else if (linhas.length === 1 && !coordenadasDoTexto(linhas[0])) {
+    ({ nome, endereco } = separarNomeEndereco(linhas[0]));
+  }
 
   // 1) Coordenadas direto no texto ou num link longo
   let achado = coordenadasDoTexto(texto);
-  let nome = links.map(nomeDoLink).find(Boolean) || '';
+  const completar = (u) => {
+    const lugar = separarNomeEndereco(lugarDoLink(u));
+    nome = nome || lugar.nome;
+    endereco = endereco || lugar.endereco;
+  };
+  links.forEach(completar);
 
-  // 2) Link curto: abre para descobrir as coordenadas
-  if (!achado) {
-    for (const l of links.filter(ehLinkCurto)) {
-      const r = await abrirLinkCurto(l);
-      if (r) {
-        achado = { latitude: r.latitude, longitude: r.longitude };
-        nome = nome || r.nome;
-        break;
-      }
-    }
+  // 2) Link curto: abre para descobrir o link completo (com nome, endereço e às vezes coordenadas)
+  for (const l of links.filter(ehLinkCurto)) {
+    if (achado && nome) break;
+    const r = await resolver(l);
+    if (!r) continue;
+    completar(r.url);
+    achado = achado || r.coords;
   }
 
   if (achado) {
-    const titulo = nomeTexto || nome;
-    let endereco = enderecoTexto;
-    if (!endereco) {
+    let end = endereco;
+    if (!end) {
       const info = await enderecoDe(achado);
       // Se não achou o endereço (sem internet), mostra o nome do lugar em vez de números
-      endereco = info.titulo === 'Local escolhido' ? titulo : info.endereco;
+      end = info.titulo === 'Local escolhido' ? nome : info.endereco;
     }
-    return { ...achado, titulo: titulo || endereco || 'Local do Google Maps', endereco: endereco || titulo };
+    return { ...achado, titulo: nome || end || 'Local do Google Maps', endereco: end || nome };
   }
 
-  // 3) Sem coordenadas: procura pelo endereço (ou pelo nome) que veio no texto
-  for (const tentativa of [enderecoTexto, [nomeTexto, enderecoTexto].filter(Boolean).join(', '), nomeTexto, nome]) {
-    if (!tentativa) continue;
+  // 3) Sem coordenadas: procura pelo endereço; só aceita resultado na cidade certa
+  const cidade = cidadeDoEndereco(endereco);
+  const naCidade = (r) => !cidade || normalizar(`${r.titulo} ${r.endereco}`).includes(normalizar(cidade));
+  const tentativas = [
+    endereco,
+    limparEndereco(endereco),
+    nome && cidade ? `${nome}, ${cidade}` : '',
+    nome && !cidade ? nome : '',
+  ].filter((t, i, a) => t && a.indexOf(t) === i);
+
+  for (const tentativa of tentativas) {
     const lista = await geocodificar(tentativa).catch(() => []);
-    if (lista.length) {
-      const r = lista[0];
+    const r = lista.find(naCidade);
+    if (r) {
       return {
         latitude: r.latitude,
         longitude: r.longitude,
-        titulo: nomeTexto || nome || r.titulo,
-        endereco: enderecoTexto || r.endereco,
+        titulo: nome || r.titulo,
+        endereco: endereco || r.endereco,
       };
     }
   }

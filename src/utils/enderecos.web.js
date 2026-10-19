@@ -56,7 +56,8 @@ export async function buscarLocais(texto, perto) {
     buscarNoPhoton(texto, perto).catch(() => []),
     buscarNoNominatim(texto, perto).catch(() => []),
   ]);
-  return juntarResultados(porNome, porEndereco);
+  // Texto com número (rua, CEP) é endereço: o geocoder de endereços vem primeiro
+  return /\d/.test(texto) ? juntarResultados(porEndereco, porNome) : juntarResultados(porNome, porEndereco);
 }
 
 export function distanciaKm(a, b) {
