@@ -8,7 +8,7 @@ import { Icone } from '../components/icones';
 import { cores, fontes } from '../theme';
 import { prepararNotificacoes, cancelarTodosLembretes } from '../services/lembretes';
 import { desativarAvisos } from '../services/pushWeb';
-import { removerAparelhoDosAvisos } from '../services/pushNativo';
+import { removerAparelhoDosAvisos, testarAvisoDoServidor } from '../services/pushNativo';
 import CartaoAvisos from '../components/CartaoAvisos';
 import { useAcesso } from '../services/AcessoContext';
 
@@ -28,7 +28,15 @@ export default function PerfilScreen({ navigation }) {
       content: { title: 'Agenda Ministerial', body: 'Tudo certo! É assim que seus lembretes vão chegar.' },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: 'lembretes' },
     });
-    Alert.alert('Aviso de teste', 'Em 5 segundos chega uma notificação de exemplo.');
+    // Testa também os avisos do servidor (compromisso novo, cliente aguardando)
+    const servidor = await testarAvisoDoServidor(usuario.uid);
+    Alert.alert(
+      'Aviso de teste',
+      'Em 5 segundos chega uma notificação de exemplo.\n\n' +
+        (servidor.ok
+          ? 'Avisos do servidor: funcionando. Chega também um segundo aviso.'
+          : `Avisos do servidor: com problema.\nMotivo: ${servidor.motivo}`)
+    );
   };
 
   const confirmarSair = () =>
