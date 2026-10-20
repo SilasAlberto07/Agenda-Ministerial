@@ -1,5 +1,6 @@
 import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import { idDoAparelho } from './acesso';
 
 // Avisos da versão web (iPhone pela tela inicial, Android pelo navegador, computador).
 // Quem envia os avisos é o robô de lembretes no GitHub Actions.
@@ -49,7 +50,14 @@ async function salvar(uid, sub) {
   const j = sub.toJSON();
   await setDoc(
     doc(db, 'users', uid, 'inscricoes', await idDaInscricao(j.endpoint)),
-    { endpoint: j.endpoint, keys: j.keys, aparelho: navigator.userAgent.slice(0, 150), atualizadoEm: serverTimestamp() },
+    {
+      tipo: 'web',
+      endpoint: j.endpoint,
+      keys: j.keys,
+      aparelhoId: await idDoAparelho(),
+      aparelho: navigator.userAgent.slice(0, 150),
+      atualizadoEm: serverTimestamp(),
+    },
     { merge: true }
   );
 }
@@ -91,15 +99,21 @@ export async function desativarAvisos(uid) {
   }
 }
 
-// Abre o compromisso quando a pessoa toca no aviso
+// Abre o compromisso (ou a tela indicada) quando a pessoa toca no aviso
+// abrir recebe { id } ou { tela }
 export function ouvirToqueNoAviso(abrir) {
-  const id = new URLSearchParams(window.location.search).get('evento');
-  if (id) {
-    abrir(id);
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('evento');
+  const tela = params.get('tela');
+  if (id || tela) {
+    abrir({ id, tela });
     window.history.replaceState(null, '', '/');
   }
   if (!('serviceWorker' in navigator)) return () => {};
-  const ouvir = (e) => e.data?.abrirEvento && abrir(e.data.abrirEvento);
+  const ouvir = (e) => {
+    if (e.data?.abrirEvento) abrir({ id: e.data.abrirEvento });
+    else if (e.data?.abrirTela) abrir({ tela: e.data.abrirTela });
+  };
   navigator.serviceWorker.addEventListener('message', ouvir);
   return () => navigator.serviceWorker.removeEventListener('message', ouvir);
 }

@@ -7,6 +7,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Notifications } from './src/services/notificacoes';
 import { registrarServiceWorker, renovarInscricao, ouvirToqueNoAviso } from './src/services/pushWeb';
+import { registrarAparelhoParaAvisos } from './src/services/pushNativo';
+import { prepararNotificacoes } from './src/services/lembretes';
 import { useFonts, Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
 import { Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold } from '@expo-google-fonts/manrope';
 
@@ -65,17 +67,28 @@ function Rotas() {
   const { estado, admin } = useAcesso();
   const pendente = useRef(null);
 
-  // Abre o compromisso (agora, ou assim que a navegação estiver pronta)
-  const abrirDetalhe = (id) => {
-    if (!id) return;
-    if (navRef.isReady() && usuario) navRef.navigate('Detalhe', { id });
-    else pendente.current = id;
+  // Destino de um aviso tocado: o compromisso ou uma tela (ex.: painel de acessos)
+  const irPara = (destino) => {
+    try {
+      if (destino.tela) navRef.navigate(destino.tela);
+      else navRef.navigate('Detalhe', { id: destino.id });
+    } catch {}
   };
+  // Abre o destino agora, ou assim que a navegação estiver pronta
+  const abrirAviso = (destino) => {
+    if (!destino?.id && !destino?.tela) return;
+    if (navRef.isReady() && usuario) irPara(destino);
+    else pendente.current = destino;
+  };
+  const abrirDetalhe = (id) => abrirAviso({ id });
 
-  // Ao tocar no lembrete, abre o compromisso
+  // Ao tocar no aviso (lembrete, compromisso novo, cliente aguardando), abre o destino
   useEffect(() => {
     if (!Notifications || !usuario) return;
-    const abrir = (resp) => abrirDetalhe(resp?.notification?.request?.content?.data?.eventoId);
+    const abrir = (resp) => {
+      const d = resp?.notification?.request?.content?.data || {};
+      abrirAviso({ id: d.eventoId, tela: d.tela });
+    };
     abrir(Notifications.getLastNotificationResponse());
     const sub = Notifications.addNotificationResponseReceivedListener(abrir);
     return () => sub.remove();
@@ -85,7 +98,11 @@ function Rotas() {
   useEffect(() => {
     if (!usuario || estado !== 'ok') return;
     renovarInscricao(usuario.uid);
-    return ouvirToqueNoAviso(abrirDetalhe);
+    // App instalado: registra este aparelho para receber os avisos do servidor
+    prepararNotificacoes()
+      .catch(() => {})
+      .then(() => registrarAparelhoParaAvisos(usuario.uid));
+    return ouvirToqueNoAviso(abrirAviso);
   }, [usuario, estado]);
 
   if (carregando) {
@@ -106,7 +123,7 @@ function Rotas() {
       documentTitle={{ formatter: () => 'Agenda Ministerial' }}
       onReady={() => {
         if (pendente.current && usuario) {
-          navRef.navigate('Detalhe', { id: pendente.current });
+          irPara(pendente.current);
           pendente.current = null;
         }
       }}

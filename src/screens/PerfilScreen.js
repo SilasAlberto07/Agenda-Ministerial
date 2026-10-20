@@ -8,6 +8,7 @@ import { Icone } from '../components/icones';
 import { cores, fontes } from '../theme';
 import { prepararNotificacoes, cancelarTodosLembretes } from '../services/lembretes';
 import { desativarAvisos } from '../services/pushWeb';
+import { removerAparelhoDosAvisos } from '../services/pushNativo';
 import CartaoAvisos from '../components/CartaoAvisos';
 import { useAcesso } from '../services/AcessoContext';
 
@@ -39,6 +40,7 @@ export default function PerfilScreen({ navigation }) {
         onPress: async () => {
           await cancelarTodosLembretes();
           await desativarAvisos(usuario.uid);
+          await removerAparelhoDosAvisos(usuario.uid);
           await sair();
         },
       },

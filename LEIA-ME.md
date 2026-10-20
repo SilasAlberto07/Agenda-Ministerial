@@ -133,6 +133,21 @@ O robô roda a cada 5 minutos. O GitHub pode atrasar algumas execuções, então
 
 O mesmo endereço também funciona no navegador do computador e em celulares Android sem o APK.
 
+### 6.5 Avisos do servidor no Android (compromisso novo e cliente aguardando)
+
+O robô também avisa:
+
+- **Compromisso novo:** quando um aparelho cadastra um compromisso, os outros aparelhos da conta recebem um aviso. Quem cadastrou não recebe.
+- **Cliente aguardando liberação:** o administrador recebe um aviso uma vez para cada cliente novo. Ao tocar, abre o painel de acessos.
+
+Na versão web (iPhone) isso já funciona com os avisos ligados no Perfil. No app Android, precisa disto uma vez só:
+
+1. **Arquivo do Firebase para o Android:** Firebase Console → engrenagem → **Configurações do projeto** → **Seus apps** → **Adicionar app** → ícone do Android. Em **Nome do pacote**, coloque `com.agendaministerial.app` e clique em **Registrar app**. Baixe o `google-services.json`, coloque na pasta do projeto (ao lado do `package.json`) e envie para o GitHub. Esse arquivo não é secreto.
+2. **Chave de envio no Expo (FCM V1):** no terminal, rode `npx.cmd eas-cli@latest credentials`, depois escolha **Android** → **preview** → **Google Service Account** → **Manage your Google Service Account Key for Push Notifications (FCM V1)** → **Upload a new service account key** e indique o mesmo arquivo `.json` da conta de serviço do passo 6.3. Ele fica guardado só no Expo. Não coloque esse arquivo no projeto.
+3. **APK novo (uma vez):** `npm.cmd run android:apk`. Instale e mande o novo APK para os clientes de Android. Depois disso, as atualizações voltam a ser só `npm.cmd run android:atualizar`.
+
+No APK antigo nada quebra: os lembretes de horário continuam funcionando, só os avisos do servidor não chegam.
+
 ## 7. Venda e controle de acesso (pagamento único)
 
 Quem instala o app e cria uma conta fica **aguardando liberação**. Só depois que você libera (quando a pessoa pagou) a agenda abre. Um instalador repassado não adianta: sem a sua liberação, o app não funciona. Cada conta tem um **limite de aparelhos** (2 por padrão), para a senha não ser espalhada.

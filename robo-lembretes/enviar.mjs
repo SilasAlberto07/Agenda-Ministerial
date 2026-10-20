@@ -74,17 +74,79 @@ function quantoFalta(min) {
 }
 
 // ---- Envio ---------------------------------------------------------------------
-async function enviarPara(inscricoes, mensagem) {
+// Cada aparelho inscrito é de um tipo:
+//  'web'  → navegador / iPhone pela tela inicial (Web Push, chaves VAPID)
+//  'expo' → app instalado (APK) com avisos do servidor (serviço de avisos do Expo)
+const ehExpo = (d) => d.tipo === 'expo' && d.token;
+const ehWeb = (d) => !!d.endpoint;
+
+async function enviarExpo(lista) {
+  // lista: [{ insc, mensagem }]
+  for (let i = 0; i < lista.length; i += 100) {
+    const lote = lista.slice(i, i + 100);
+    const corpo = lote.map(({ insc, mensagem }) => ({
+      to: insc.data().token,
+      title: mensagem.title,
+      body: mensagem.body,
+      data: { eventoId: mensagem.eventoId || '', tela: mensagem.tela || '' },
+      sound: 'default',
+      channelId: 'lembretes',
+      priority: 'high',
+    }));
+    try {
+      const r = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo),
+      });
+      const json = await r.json();
+      const tickets = json.data || [];
+      for (let j = 0; j < tickets.length; j++) {
+        const t = tickets[j];
+        if (t.status === 'error') {
+          if (t.details?.error === 'DeviceNotRegistered') {
+            await lote[j].insc.ref.delete();
+            console.log('  aparelho (app) desinstalado: inscrição removida');
+          } else {
+            console.warn('  falha ao enviar (app):', t.details?.error || t.message);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('  falha ao falar com o serviço de avisos do Expo:', e.message || e);
+    }
+  }
+}
+
+/**
+ * Envia a mensagem para os aparelhos inscritos.
+ * somenteWeb: lembretes de horário (o app instalado já agenda os próprios lembretes)
+ * excetoAparelho: não manda para o aparelho que cadastrou o compromisso
+ */
+async function enviarPara(inscricoes, mensagem, { somenteWeb = false, excetoAparelho = '' } = {}) {
   let enviados = 0;
+  const paraExpo = [];
   for (const insc of inscricoes) {
-    const { endpoint, keys } = insc.data();
+    const d = insc.data();
+    if (excetoAparelho && d.aparelhoId === excetoAparelho) continue;
     if (SIMULAR) {
-      console.log(`  [simulação] enviaria para ${endpoint.slice(0, 40)}…`);
+      console.log(`  [simulação] enviaria para um aparelho ${ehExpo(d) ? 'app' : 'web'}`);
       enviados++;
       continue;
     }
+    if (ehExpo(d)) {
+      if (!somenteWeb) {
+        paraExpo.push({ insc, mensagem });
+        enviados++;
+      }
+      continue;
+    }
+    if (!ehWeb(d)) continue;
     try {
-      await webpush.sendNotification({ endpoint, keys }, JSON.stringify(mensagem), { TTL: 3600, urgency: 'high' });
+      await webpush.sendNotification({ endpoint: d.endpoint, keys: d.keys }, JSON.stringify(mensagem), {
+        TTL: 3600,
+        urgency: 'high',
+      });
       enviados++;
     } catch (e) {
       // 404/410: o aparelho cancelou ou desinstalou; apaga a inscrição
@@ -96,6 +158,7 @@ async function enviarPara(inscricoes, mensagem) {
       }
     }
   }
+  if (paraExpo.length) await enviarExpo(paraExpo);
   return enviados;
 }
 
@@ -123,12 +186,14 @@ async function excluirContasMarcadas() {
 // Contas sem pedido de acesso (ex.: criadas por uma versão antiga do app):
 // cria o pedido "aguardando liberação" para aparecerem no Painel de acessos.
 async function criarPedidosFaltando() {
+  const admins = [];
   const existentes = new Set((await db.collection('acessos').select().get()).docs.map((d) => d.id));
   let pagina;
   let criados = 0;
   do {
     const r = await getAuth().listUsers(1000, pagina);
     for (const u of r.users) {
+      if (u.customClaims?.admin) admins.push(u.uid);
       if (existentes.has(u.uid)) continue;
       const ref = db.doc(`acessos/${u.uid}`);
       const criado = await ref
@@ -147,11 +212,72 @@ async function criarPedidosFaltando() {
     pagina = r.pageToken;
   } while (pagina);
   if (criados) console.log(`${criados} pedido(s) de acesso criado(s) para contas novas.`);
+  return admins;
+}
+
+// Avisa o administrador quando um cliente novo fica aguardando liberação (uma vez por cliente)
+async function avisarAdminPedidosNovos(admins) {
+  if (!admins.length) return;
+  const pendentes = (await db.collection('acessos').where('liberado', '==', false).get()).docs.filter((d) => {
+    const a = d.data();
+    return !a.bloqueado && !a.excluido && !a.excluir && !a.avisadoAdmin;
+  });
+  if (!pendentes.length) return;
+  const inscricoesAdmin = [];
+  for (const uid of admins) inscricoesAdmin.push(...(await db.collection(`users/${uid}/inscricoes`).get()).docs);
+  for (const p of pendentes) {
+    const a = p.data();
+    const quem = [a.nome, a.email].filter(Boolean).join(' · ') || 'Conta nova';
+    const n = inscricoesAdmin.length
+      ? await enviarPara(inscricoesAdmin, {
+          title: 'Novo cliente aguardando liberação',
+          body: quem,
+          tela: 'PainelAcessos',
+          tag: `pedido-${p.id}`,
+        })
+      : 0;
+    if (!SIMULAR) await p.ref.update({ avisadoAdmin: true });
+    console.log(`Pedido novo avisado ao administrador (${n} aparelho(s)).`);
+  }
+}
+
+// Compromisso novo: avisa os outros aparelhos da mesma conta (uma vez por compromisso)
+async function avisarCompromissosNovos(usuario, inscricoes) {
+  const novos = await usuario.collection('eventos').where('novo', '==', true).get();
+  let total = 0;
+  for (const ev of novos.docs) {
+    const e = ev.data();
+    // Cadastrado há mais de 6 horas (ex.: conta que ainda não tinha aparelho inscrito): só desmarca
+    const criado = e.criadoEm?.toMillis ? e.criadoEm.toMillis() : Date.now();
+    if (Date.now() - criado > 6 * 3600000) {
+      if (!SIMULAR) await ev.ref.update({ novo: false });
+      continue;
+    }
+    const data = e.data?.toDate ? e.data.toDate() : null;
+    const quando = data ? ` · ${diaLocal(data)} às ${horaLocal(data)}` : '';
+    total += await enviarPara(
+      inscricoes,
+      {
+        title: 'Novo compromisso na agenda',
+        body: `${e.tipo || 'Compromisso'}: ${e.nome || ''}${quando}`,
+        eventoId: ev.id,
+        tag: `novo-${ev.id}`,
+      },
+      { excetoAparelho: e.criadoPorAparelho || '' }
+    );
+    if (!SIMULAR) await ev.ref.update({ novo: false });
+  }
+  if (novos.size) console.log(`Compromisso(s) novo(s): ${novos.size}, avisos enviados: ${total}.`);
+  return total;
 }
 
 async function main() {
   await excluirContasMarcadas().catch((e) => console.warn('Exclusão de contas:', e.message || e));
-  await criarPedidosFaltando().catch((e) => console.warn('Pedidos de acesso:', e.message || e));
+  const admins = await criarPedidosFaltando().catch((e) => {
+    console.warn('Pedidos de acesso:', e.message || e);
+    return [];
+  });
+  await avisarAdminPedidosNovos(admins).catch((e) => console.warn('Aviso ao administrador:', e.message || e));
   const agora = Date.now();
   const ate = Timestamp.fromMillis(agora + (MAIOR_LEMBRETE_MIN + 5) * 60000);
   const desde = Timestamp.fromMillis(agora);
@@ -160,11 +286,16 @@ async function main() {
   const usuarios = await db.collection('users').listDocuments();
   for (const usuario of usuarios) {
     const inscricoes = (await usuario.collection('inscricoes').get()).docs;
-    if (!inscricoes.length) continue; // ninguém da versão web nesta conta
+    if (!inscricoes.length) continue; // nenhum aparelho inscrito para avisos nesta conta
     // Conta sem acesso liberado (não pagou ou foi bloqueada) não recebe avisos.
     // Contas de antes do controle de acesso (sem documento) continuam recebendo.
     const acesso = await db.doc(`acessos/${usuario.id}`).get();
     if (acesso.exists && acesso.data().liberado !== true) continue;
+
+    totalAvisos += await avisarCompromissosNovos(usuario, inscricoes).catch((e) => {
+      console.warn('Compromissos novos:', e.message || e);
+      return 0;
+    });
 
     const eventos = await usuario.collection('eventos').where('data', '>=', desde).where('data', '<=', ate).get();
     for (const ev of eventos.docs) {
@@ -187,7 +318,8 @@ async function main() {
           tag: `${ev.id}-${minutos}`,
         };
         console.log(`Lembrete: "${mensagem.title}" (conta ${usuario.id.slice(0, 6)}…)`);
-        const n = await enviarPara(inscricoes, mensagem);
+        // Lembretes de horário só vão para a versão web; o app instalado agenda os próprios
+        const n = await enviarPara(inscricoes, mensagem, { somenteWeb: true });
         totalAvisos += n;
         if (!SIMULAR) await ev.ref.update({ lembretesEnviados: FieldValue.arrayUnion(chave) });
       }
