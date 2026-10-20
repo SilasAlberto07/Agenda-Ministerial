@@ -11,6 +11,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { idDoAparelho } from './acesso';
 
 // Cada usuário tem a própria coleção: users/{uid}/eventos
 const colecao = (uid) => collection(db, 'users', uid, 'eventos');
@@ -31,8 +32,11 @@ export function ouvirEventos(uid, aoMudar, aoErrar) {
   return onSnapshot(q, (snap) => aoMudar(snap.docs.map(deFirestore)), aoErrar);
 }
 
-export function criarEvento(uid, evento) {
-  return addDoc(colecao(uid), { ...paraFirestore(evento), criadoEm: serverTimestamp() });
+// novo: true avisa os outros aparelhos da conta (o robô envia o aviso e desmarca).
+// criadoPorAparelho: para quem cadastrou não receber o próprio aviso.
+export async function criarEvento(uid, evento) {
+  const criadoPorAparelho = await idDoAparelho().catch(() => '');
+  return addDoc(colecao(uid), { ...paraFirestore(evento), criadoEm: serverTimestamp(), novo: true, criadoPorAparelho });
 }
 
 export function atualizarEvento(uid, evento) {

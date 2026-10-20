@@ -18,7 +18,7 @@ self.addEventListener('push', (event) => {
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       tag: dados.tag,
-      data: { eventoId: dados.eventoId || null },
+      data: { eventoId: dados.eventoId || null, tela: dados.tela || null },
     })
   );
 });
@@ -27,12 +27,15 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const id = event.notification.data && event.notification.data.eventoId;
-  const url = new URL(id ? `/?evento=${encodeURIComponent(id)}` : '/', self.location.origin).href;
+  const tela = event.notification.data && event.notification.data.tela;
+  const caminho = id ? `/?evento=${encodeURIComponent(id)}` : tela ? `/?tela=${encodeURIComponent(tela)}` : '/';
+  const url = new URL(caminho, self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
       for (const janela of janelas) {
         if ('focus' in janela) {
           if (id) janela.postMessage({ abrirEvento: id });
+          else if (tela) janela.postMessage({ abrirTela: tela });
           return janela.focus();
         }
       }
