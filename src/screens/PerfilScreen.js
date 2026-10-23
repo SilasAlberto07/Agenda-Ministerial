@@ -218,11 +218,16 @@ export default function PerfilScreen({ navigation }) {
           icone={<Icone nome="log-out-outline" tamanho={18} />}
         />
       </View>
+      <Text style={st.assinatura}>Agenda Ministerial · Desenvolvido por Silas Alberto</Text>
     </SafeAreaView>
   );
 }
 
 const st = StyleSheet.create({
+  assinatura: {
+    fontFamily: fontes.normal, fontSize: 11, color: cores.texto3, textAlign: 'center', marginTop: 'auto', paddingBottom: 16,
+    letterSpacing: 0.3,
+  },
   tela: { flex: 1, backgroundColor: cores.fundo, paddingHorizontal: 24, gap: 20 },
   titulo: { fontFamily: fontes.titulo, fontSize: 30, color: cores.tinta, marginTop: 12 },
   cartao: {

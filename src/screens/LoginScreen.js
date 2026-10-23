@@ -103,6 +103,7 @@ export default function LoginScreen() {
               <Text style={st.link}>{modo === 'entrar' ? 'Criar conta' : 'Entrar'}</Text>
             </Text>
           </Pressable>
+          <Text style={st.assinatura}>Desenvolvido por Silas Alberto</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -118,4 +119,5 @@ const st = StyleSheet.create({
   erro: { fontFamily: fontes.medio, fontSize: 14, color: cores.erro },
   aviso: { fontFamily: fontes.medio, fontSize: 14, color: cores.dourado, backgroundColor: cores.douradoClaro, padding: 12, borderRadius: 12 },
   rodape: { textAlign: 'center', fontFamily: fontes.normal, fontSize: 15, color: cores.texto2 },
+  assinatura: { textAlign: 'center', fontFamily: fontes.normal, fontSize: 11, color: cores.texto3, marginTop: -20, letterSpacing: 0.3 },
 });
