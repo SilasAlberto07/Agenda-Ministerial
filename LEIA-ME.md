@@ -55,6 +55,10 @@ Na primeira vez, crie sua conta pela própria tela do app em **Criar conta**.
 
 **Agenda e Histórico:** às 23h do dia de cada compromisso (ou 2 horas depois do início, se começar tarde), ele sai da agenda e vai para a aba **Histórico**. Nada é apagado: dá para abrir, ver o local e apagar pelo próprio histórico.
 
+**Compromissos de hoje:** aparecem em destaque na Agenda: um cartão vinho no topo ("Você tem compromisso hoje") e os cartões do dia com borda e a data marcada como **HOJE**.
+
+**Sem internet:** o app guarda uma cópia da agenda no aparelho toda vez que abre com internet. Sem internet, ele abre normalmente com essa cópia e mostra o aviso "Sem internet". Dá para consultar a agenda, o histórico e os detalhes. Para adicionar, editar ou excluir é preciso internet. Na versão web (iPhone), o site também fica guardado no aparelho e abre sem internet. Vale para o Android e para a web, depois de abrir o app uma vez com internet nesta versão.
+
 **Lembretes:** você escolhe avisar 1 dia, 3h, 2h ou 30 min antes. Os avisos são agendados no próprio celular e chegam mesmo com o app fechado. Se você entrar na conta em outro celular, os lembretes são agendados nele também automaticamente. Tocar no aviso abre o compromisso.
 
 ## 5. Publicar nas lojas (quando quiser)

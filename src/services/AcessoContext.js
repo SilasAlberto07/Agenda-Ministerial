@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { idDoAparelho, ouvirAcesso, pedirAcesso, registrarAparelho } from './acesso';
+import { acessoLocalLiberado, salvarAcessoLocal } from './cacheLocal';
 
 /**
  * estado:
@@ -9,7 +10,10 @@ import { idDoAparelho, ouvirAcesso, pedirAcesso, registrarAparelho } from './ace
  *  'bloqueado'  — o administrador bloqueou a conta
  *  'limite'     — conta liberada, mas já está no limite de aparelhos
  *  'ok'         — pode usar o app
- *  'erro'       — sem internet ou falha ao verificar
+ *  'erro'       — sem internet ou falha ao verificar (e nunca liberado neste aparelho)
+ *
+ * Sem internet: se a conta já foi liberada neste aparelho antes, abre direto ('ok')
+ * com a agenda salva no aparelho.
  */
 export const AcessoContext = createContext({ estado: 'carregando', admin: false, acesso: null });
 
@@ -38,10 +42,28 @@ export function AcessoProvider({ children }) {
     setEstado('carregando');
     let ativo = true;
     let espera = null;
+    let liberadoAntes = false;
+    let confirmado = false; // já chegou resposta do servidor
+    const definir = (e) => {
+      if (!ativo) return;
+      setEstado(e);
+      if (e === 'ok') salvarAcessoLocal(usuario.uid, true);
+      if (e === 'pendente' || e === 'bloqueado') salvarAcessoLocal(usuario.uid, false);
+    };
+
+    // Já liberada neste aparelho antes: abre na hora (inclusive sem internet)
+    acessoLocalLiberado(usuario.uid).then((sim) => {
+      liberadoAntes = sim;
+      if (sim && ativo && !confirmado) setEstado('ok');
+    });
+
     const parar = ouvirAcesso(
       usuario.uid,
-      async (dados) => {
+      async (dados, { doCache } = {}) => {
         if (!ativo) return;
+        // Sem resposta do servidor (sem internet): mantém o que já se sabia
+        if (doCache) return;
+        confirmado = true;
         setAcesso(dados);
         clearTimeout(espera);
         if (!dados) {
@@ -52,18 +74,18 @@ export function AcessoProvider({ children }) {
           return;
         }
         if (!dados.liberado) {
-          setEstado(dados.bloqueado ? 'bloqueado' : 'pendente');
+          definir(dados.bloqueado ? 'bloqueado' : 'pendente');
           return;
         }
         try {
           const id = await idDoAparelho();
           const cabe = await registrarAparelho(usuario.uid, dados, id);
-          if (ativo) setEstado(cabe ? 'ok' : 'limite');
+          definir(cabe ? 'ok' : 'limite');
         } catch {
-          if (ativo) setEstado('erro');
+          if (ativo) setEstado(liberadoAntes ? 'ok' : 'erro');
         }
       },
-      () => ativo && setEstado('erro')
+      () => ativo && setEstado(liberadoAntes ? 'ok' : 'erro')
     );
     return () => {
       ativo = false;

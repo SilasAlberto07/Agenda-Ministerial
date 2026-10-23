@@ -10,6 +10,7 @@ import { prepararNotificacoes, cancelarTodosLembretes } from '../services/lembre
 import { desativarAvisos } from '../services/pushWeb';
 import { removerAparelhoDosAvisos, testarAvisoDoServidor } from '../services/pushNativo';
 import CartaoAvisos from '../components/CartaoAvisos';
+import { limparCacheLocal } from '../services/cacheLocal';
 import { useAcesso } from '../services/AcessoContext';
 
 export default function PerfilScreen({ navigation }) {
@@ -49,6 +50,7 @@ export default function PerfilScreen({ navigation }) {
           await cancelarTodosLembretes();
           await desativarAvisos(usuario.uid);
           await removerAparelhoDosAvisos(usuario.uid);
+          await limparCacheLocal(usuario.uid);
           await sair();
         },
       },

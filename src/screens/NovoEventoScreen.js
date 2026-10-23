@@ -21,7 +21,7 @@ function dataPadrao() {
 
 export default function NovoEventoScreen({ navigation, route }) {
   const { usuario } = useAuth();
-  const { eventos } = useEventos();
+  const { eventos, offline } = useEventos();
   const editando = route.params?.id ? eventos.find((e) => e.id === route.params.id) : null;
 
   const [tipo, setTipo] = useState(editando?.tipo || 'Culto');
@@ -50,6 +50,7 @@ export default function NovoEventoScreen({ navigation, route }) {
 
   const salvar = async () => {
     if (!nome.trim()) return Alert.alert('Falta o nome', 'Dê um nome para o compromisso.');
+    if (offline) return Alert.alert('Sem internet', 'Para adicionar, editar ou excluir compromissos, conecte-se à internet. Sem internet você pode consultar a agenda normalmente.');
     setSalvando(true);
     try {
       if (lembretes.length && notificacoesDisponiveis) {

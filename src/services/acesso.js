@@ -55,7 +55,9 @@ export function pedirAcesso(usuario, nome) {
 export function ouvirAcesso(uid, aoMudar, aoErrar) {
   return onSnapshot(
     refAcesso(uid),
-    (snap) => aoMudar(snap.exists() ? snap.data() : null),
+    // doCache: veio da memória do aparelho (sem confirmação do servidor, ex.: sem internet)
+    { includeMetadataChanges: true },
+    (snap) => aoMudar(snap.exists() ? snap.data() : null, { doCache: snap.metadata.fromCache }),
     aoErrar
   );
 }

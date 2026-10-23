@@ -5,7 +5,8 @@ import { mesCurto, hora } from '../utils/datas';
 
 // Cartão de um compromisso, usado na Agenda e no Histórico.
 // No Histórico (historico=true) mostra o ano e o endereço completo.
-export default function CartaoEvento({ evento, onPress, historico }) {
+// hoje=true: compromisso de hoje, com borda e data em destaque.
+export default function CartaoEvento({ evento, onPress, historico, hoje }) {
   const c = corDoTipo(evento.tipo);
   const onde = historico
     ? [evento.igreja, evento.local?.endereco].filter(Boolean).join(' · ')
@@ -14,26 +15,29 @@ export default function CartaoEvento({ evento, onPress, historico }) {
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [st.cartao, pressed && { opacity: 0.85 }]}
+      accessibilityLabel={hoje ? `Hoje: ${evento.nome}` : evento.nome}
+      style={({ pressed }) => [st.cartao, hoje && st.cartaoHoje, pressed && { opacity: 0.85 }]}
     >
-      <View style={[st.caixaData, { backgroundColor: c.fundo }]}>
-        <Text style={[st.mes, { color: c.texto }]}>{mesCurto(evento.data)}</Text>
-        <Text style={[st.diaGrande, { color: c.texto }]}>{String(evento.data.getDate()).padStart(2, '0')}</Text>
+      <View style={[st.caixaData, { backgroundColor: hoje ? cores.vinho : c.fundo }]}>
+        <Text style={[st.mes, { color: hoje ? '#fff' : c.texto }]}>{hoje ? 'Hoje' : mesCurto(evento.data)}</Text>
+        <Text style={[st.diaGrande, { color: hoje ? '#fff' : c.texto }]}>{String(evento.data.getDate()).padStart(2, '0')}</Text>
         {historico ? <Text style={[st.ano, { color: c.texto }]}>{evento.data.getFullYear()}</Text> : null}
       </View>
       <View style={{ flex: 1, gap: 4 }}>
-        <Text style={[st.tag, { color: c.texto }]}>
-          {evento.tipo}
-          {evento.participacao ? ` · ${evento.participacao.toLowerCase()}` : ''}
-        </Text>
+        <View style={st.topo}>
+          <Text style={[st.tag, { color: c.texto, flexShrink: 1 }]} numberOfLines={1}>
+            {evento.tipo}
+            {evento.participacao ? ` · ${evento.participacao.toLowerCase()}` : ''}
+          </Text>
+        </View>
         <Text style={st.nome} numberOfLines={2}>
           {evento.nome}
         </Text>
         <View style={st.linha}>
           {!historico ? (
             <>
-              <Icone nome="time-outline" tamanho={14} cor={cores.texto2} />
-              <Text style={st.info}>{hora(evento.data)}</Text>
+              <Icone nome="time-outline" tamanho={14} cor={hoje ? cores.vinho : cores.texto2} />
+              <Text style={[st.info, hoje && st.horaHoje]}>{hora(evento.data)}</Text>
             </>
           ) : null}
           {onde ? (
@@ -55,6 +59,9 @@ const st = StyleSheet.create({
     flexDirection: 'row', gap: 14, backgroundColor: cores.cartao, borderRadius: 18, padding: 14,
     borderWidth: 1, borderColor: cores.bordaSuave,
   },
+  cartaoHoje: { borderWidth: 2, borderColor: cores.vinho, backgroundColor: '#FCF5F7' },
+  topo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  horaHoje: { fontFamily: fontes.forte, color: cores.vinho },
   caixaData: { width: 56, minHeight: 64, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 6 },
   mes: { fontFamily: fontes.forte, fontSize: 11, textTransform: 'uppercase' },
   diaGrande: { fontFamily: fontes.titulo, fontSize: 24 },

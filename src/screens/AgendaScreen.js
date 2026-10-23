@@ -7,13 +7,13 @@ import { Icone } from '../components/icones';
 import CartaoAvisos from '../components/CartaoAvisos';
 import CartaoEvento from '../components/CartaoEvento';
 import { cores, fontes } from '../theme';
-import { semanaAtual, mesmoDia, diaSemanaCurto } from '../utils/datas';
+import { semanaAtual, mesmoDia, diaSemanaCurto, hora, dataNumerica } from '../utils/datas';
 
 const FILTROS = ['Todos', 'Cultos', 'Congressos', 'Festividades'];
 
 export default function AgendaScreen({ navigation }) {
   const { usuario } = useAuth();
-  const { proximos, historico, carregando, erro, agora } = useEventos();
+  const { proximos, historico, carregando, erro, agora, offline, salvoEm } = useEventos();
   const [diaSel, setDiaSel] = useState(null);
   const [filtro, setFiltro] = useState('Todos');
   const semana = useMemo(() => semanaAtual(), []);
@@ -30,6 +30,14 @@ export default function AgendaScreen({ navigation }) {
     });
   }, [proximos, diaSel, filtro]);
 
+  // Compromissos de hoje que ainda não passaram
+  const deHoje = useMemo(() => proximos.filter((e) => mesmoDia(e.data, hoje)), [proximos, hoje]);
+  const salvoTexto = salvoEm
+    ? mesmoDia(new Date(salvoEm), hoje)
+      ? `hoje às ${hora(new Date(salvoEm))}`
+      : dataNumerica(new Date(salvoEm))
+    : null;
+
   const primeiroNome = (usuario?.displayName || '').split(' ').slice(0, 2).join(' ');
 
   return (
@@ -41,7 +49,17 @@ export default function AgendaScreen({ navigation }) {
         </View>
       </View>
 
-      <CartaoAvisos compacto />
+      {offline ? (
+        <View style={st.offline} accessibilityRole="alert">
+          <Icone nome="cloud-offline-outline" tamanho={18} cor={cores.dourado} />
+          <Text style={st.offlineTexto}>
+            Sem internet. Mostrando a agenda salva neste aparelho
+            {salvoTexto ? ` (atualizada ${salvoTexto})` : ''}.
+          </Text>
+        </View>
+      ) : (
+        <CartaoAvisos compacto />
+      )}
 
       <View style={st.semana}>
         {semana.map((d) => {
@@ -54,7 +72,7 @@ export default function AgendaScreen({ navigation }) {
               accessibilityRole="button"
               accessibilityLabel={`${diaSemanaCurto(d)} ${d.getDate()}`}
               onPress={() => setDiaSel(ativo ? null : d)}
-              style={[st.dia, ativo && st.diaAtivo, !ativo && ehHoje && { borderColor: cores.vinho }]}
+              style={[st.dia, ativo && st.diaAtivo, !ativo && ehHoje && st.diaHoje]}
             >
               <Text style={[st.diaSemana, ativo && { color: '#fff' }]}>{diaSemanaCurto(d)}</Text>
               <Text style={[st.diaNum, ativo && { color: '#fff' }]}>{d.getDate()}</Text>
@@ -84,18 +102,44 @@ export default function AgendaScreen({ navigation }) {
           keyExtractor={(e) => e.id}
           contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120, gap: 12 }}
           ListHeaderComponent={
-            <Text style={st.secao}>{diaSel ? `Dia ${diaSel.getDate()}` : 'Próximos compromissos'}</Text>
+            <>
+              {!diaSel && deHoje.length ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() =>
+                    deHoje.length === 1 ? navigation.navigate('Detalhe', { id: deHoje[0].id }) : setDiaSel(hoje)
+                  }
+                  style={({ pressed }) => [st.hoje, pressed && { opacity: 0.9 }]}
+                >
+                  <View style={st.hojeIcone}>
+                    <Icone nome="calendar-outline" cor={cores.vinho} tamanho={22} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={st.hojeTitulo}>
+                      {deHoje.length === 1 ? 'Você tem compromisso hoje' : `Você tem ${deHoje.length} compromissos hoje`}
+                    </Text>
+                    <Text style={st.hojeTexto} numberOfLines={1}>
+                      {hora(deHoje[0].data)} · {deHoje[0].nome}
+                    </Text>
+                  </View>
+                  <Icone nome="chevron-forward" cor="#fff" tamanho={20} />
+                </Pressable>
+              ) : null}
+              <Text style={st.secao}>{diaSel ? `Dia ${diaSel.getDate()}` : 'Próximos compromissos'}</Text>
+            </>
           }
           ListEmptyComponent={
             <Text style={st.vazio}>
-              {erro
+              {offline && !salvoEm
+                ? 'Sem internet. A agenda fica salva neste aparelho depois que você abrir o app uma vez com internet.'
+                : erro
                 ? 'Não foi possível carregar sua agenda. Verifique a internet e a configuração do Firebase.'
                 : diaSel && historico.some((e) => mesmoDia(e.data, diaSel))
                   ? 'Os compromissos deste dia já foram realizados. Veja na aba Histórico.'
                   : 'Nenhum compromisso aqui ainda. Toque no + para adicionar.'}
             </Text>
           }
-          renderItem={({ item }) => <CartaoEvento evento={item} onPress={() => navigation.navigate('Detalhe', { id: item.id })} />}
+          renderItem={({ item }) => <CartaoEvento evento={item} hoje={mesmoDia(item.data, hoje)} onPress={() => navigation.navigate('Detalhe', { id: item.id })} />}
         />
       )}
 
@@ -121,6 +165,7 @@ const st = StyleSheet.create({
     flex: 1, height: 72, borderRadius: 16, borderWidth: 1, borderColor: '#E3DBD1', backgroundColor: cores.cartao,
     alignItems: 'center', justifyContent: 'center', gap: 2,
   },
+  diaHoje: { borderColor: cores.vinho, borderWidth: 2, backgroundColor: '#FCF5F7' },
   diaAtivo: { backgroundColor: cores.vinho, borderColor: cores.vinho },
   diaSemana: { fontFamily: fontes.medio, fontSize: 11, textTransform: 'uppercase', color: cores.texto2 },
   diaNum: { fontFamily: fontes.forte, fontSize: 18, color: cores.tinta },
@@ -131,6 +176,18 @@ const st = StyleSheet.create({
   filtro: { height: 38, paddingHorizontal: 16, borderRadius: 19, borderWidth: 1, borderColor: cores.borda, justifyContent: 'center' },
   filtroAtivo: { backgroundColor: cores.tinta, borderColor: cores.tinta },
   filtroTexto: { fontFamily: fontes.forte, fontSize: 14, color: cores.tinta },
+  offline: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 24, marginBottom: 4, padding: 12,
+    borderRadius: 14, backgroundColor: cores.douradoClaro, flexShrink: 0,
+  },
+  offlineTexto: { flex: 1, fontFamily: fontes.medio, fontSize: 13, color: cores.dourado, lineHeight: 18 },
+  hoje: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: cores.vinho, borderRadius: 18,
+    padding: 14, marginTop: 8,
+  },
+  hojeIcone: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  hojeTitulo: { fontFamily: fontes.forte, fontSize: 16, color: '#fff' },
+  hojeTexto: { fontFamily: fontes.normal, fontSize: 14, color: '#F3E4E9' },
   secao: {
     fontFamily: fontes.forte, fontSize: 13, color: cores.texto2, textTransform: 'uppercase',
     letterSpacing: 0.6, marginTop: 10, marginBottom: 2,

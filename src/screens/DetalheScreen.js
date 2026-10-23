@@ -13,7 +13,7 @@ import { dataLonga, dataCompleta, hora, realizado } from '../utils/datas';
 
 export default function DetalheScreen({ navigation, route }) {
   const { usuario } = useAuth();
-  const { eventos, agora } = useEventos();
+  const { eventos, agora, offline } = useEventos();
   const ev = eventos.find((e) => e.id === route.params?.id);
 
   useLayoutEffect(() => {
@@ -55,7 +55,9 @@ export default function DetalheScreen({ navigation, route }) {
   };
 
   const excluir = () =>
-    Alert.alert(
+    offline
+      ? Alert.alert('Sem internet', 'Para adicionar, editar ou excluir compromissos, conecte-se à internet. Sem internet você pode consultar a agenda normalmente.')
+      : Alert.alert(
       jaFoi ? 'Apagar do histórico?' : 'Excluir compromisso?',
       jaFoi ? `"${ev.nome}" será apagado do histórico.` : `"${ev.nome}" e os lembretes dele serão apagados.`, [
       { text: 'Cancelar', style: 'cancel' },

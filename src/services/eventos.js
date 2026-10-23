@@ -27,9 +27,15 @@ function paraFirestore(evento) {
 }
 
 // Escuta os compromissos do usuário em tempo real (ordenados por data)
+// doServidor: false quando a lista veio só da memória do aparelho (sem internet)
 export function ouvirEventos(uid, aoMudar, aoErrar) {
   const q = query(colecao(uid), orderBy('data', 'asc'));
-  return onSnapshot(q, (snap) => aoMudar(snap.docs.map(deFirestore)), aoErrar);
+  return onSnapshot(
+    q,
+    { includeMetadataChanges: true },
+    (snap) => aoMudar(snap.docs.map(deFirestore), { doServidor: !snap.metadata.fromCache }),
+    aoErrar
+  );
 }
 
 // novo: true avisa os outros aparelhos da conta (o robô envia o aviso e desmarca).
