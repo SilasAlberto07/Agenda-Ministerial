@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://agenda-ministerial-83611.web.app/sitemap.xml
