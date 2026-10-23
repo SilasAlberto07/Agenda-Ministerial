@@ -6,6 +6,8 @@ import { useEventos } from '../services/EventosContext';
 import { Icone } from '../components/icones';
 import CartaoAvisos from '../components/CartaoAvisos';
 import CartaoEvento from '../components/CartaoEvento';
+import Avatar from '../components/Avatar';
+import { usePerfil } from '../services/PerfilContext';
 import { cores, fontes } from '../theme';
 import { semanaAtual, mesmoDia, diaSemanaCurto, hora, dataNumerica } from '../utils/datas';
 
@@ -13,6 +15,7 @@ const FILTROS = ['Todos', 'Cultos', 'Congressos', 'Festividades'];
 
 export default function AgendaScreen({ navigation }) {
   const { usuario } = useAuth();
+  const { nome, foto } = usePerfil();
   const { proximos, historico, carregando, erro, agora, offline, salvoEm } = useEventos();
   const [diaSel, setDiaSel] = useState(null);
   const [filtro, setFiltro] = useState('Todos');
@@ -42,15 +45,18 @@ export default function AgendaScreen({ navigation }) {
       : dataNumerica(new Date(salvoEm))
     : null;
 
-  const primeiroNome = (usuario?.displayName || '').split(' ').slice(0, 2).join(' ');
+  const primeiroNome = (nome || '').trim();
 
   return (
     <SafeAreaView style={st.tela} edges={['top']}>
       <View style={st.cabecalho}>
         <View style={{ gap: 2, flex: 1 }}>
-          <Text style={st.saudacao}>Paz do Senhor{primeiroNome ? `, ${primeiroNome}` : ''}</Text>
+          <Text style={st.saudacao} numberOfLines={1}>Paz do Senhor{primeiroNome ? `, ${primeiroNome}` : ''}</Text>
           <Text style={st.titulo}>Minha agenda</Text>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Abrir perfil" onPress={() => navigation.navigate('Perfil')}>
+          <Avatar foto={foto} nome={nome} tamanho={46} />
+        </Pressable>
       </View>
 
       {offline ? (

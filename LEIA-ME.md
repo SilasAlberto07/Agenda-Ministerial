@@ -49,7 +49,7 @@ Na primeira vez, crie sua conta pela própria tela do app em **Criar conta**.
 | Mapa | Todos os próximos compromissos com local marcado |
 | Detalhe | Informações, mapinha, botão **Rota** (abre Google Maps / Apple Maps), editar e excluir |
 | Histórico | Compromissos já realizados, por mês, com busca por igreja/cidade e filtros |
-| Perfil | Seus dados, avisos e sair |
+| Perfil | Foto e nome (toque para trocar; valem para todos os aparelhos da conta), avisos e sair |
 
 **Local pelo Google Maps:** na escolha do local, toque em **Abrir Google Maps**, ache a igreja, toque em **Compartilhar → Copiar**, volte e toque em **Colar local**. O app marca o ponto e preenche o nome da igreja. No detalhe de cada compromisso há o botão **Ver no Google Maps**. A busca do próprio app também procura igrejas e lugares pelo nome (Photon/OpenStreetMap, gratuito).
 

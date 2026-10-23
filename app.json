@@ -49,6 +49,14 @@
         {
           "color": "#6E1A37"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Usamos suas fotos para você escolher a foto de perfil.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "extra": {

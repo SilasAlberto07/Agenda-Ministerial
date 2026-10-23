@@ -26,6 +26,14 @@ service cloud.firestore {
       allow read, write: if dono(uid) && liberado(uid);
     }
 
+    // Perfil da conta (nome e foto pequena em JPEG), igual em todos os aparelhos
+    match /users/{uid}/perfil/{docId} {
+      allow read: if dono(uid) && liberado(uid);
+      allow write: if dono(uid) && liberado(uid) && docId == 'dados'
+        && (!('foto' in request.resource.data) || (request.resource.data.foto is string && request.resource.data.foto.size() < 400000))
+        && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() <= 60));
+    }
+
     // ---- Acesso ao app ---------------------------------------------------------
     // acessos/{uid}: { liberado, limiteAparelhos, aparelhos: { id: {...} }, email, nome, criadoEm, ultimoAcesso }
     match /acessos/{uid} {

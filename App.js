@@ -15,6 +15,7 @@ import { Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold } from '@expo-
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { EventosProvider } from './src/services/EventosContext';
 import { AcessoProvider, useAcesso } from './src/services/AcessoContext';
+import { PerfilProvider } from './src/services/PerfilContext';
 import { Icone } from './src/components/icones';
 import { cores, fontes } from './src/theme';
 
@@ -168,7 +169,9 @@ export default function App() {
       <AuthProvider>
         <AcessoProvider>
           <EventosProvider>
-            <Rotas />
+            <PerfilProvider>
+              <Rotas />
+            </PerfilProvider>
           </EventosProvider>
         </AcessoProvider>
       </AuthProvider>
