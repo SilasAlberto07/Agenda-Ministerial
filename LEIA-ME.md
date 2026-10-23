@@ -78,13 +78,20 @@ O mapa usa o OpenFreeMap (dados do OpenStreetMap): gratuito, sem chave e sem lim
 
 ```bash
 git pull
+npm install                   # só quando o git pull mudar o package.json
 npm run web:publicar          # iPhone / versão web: basta fechar e abrir o app
 npm run android:atualizar     # Android: o APK baixa a novidade sozinho ao abrir
 ```
 
 No Android, a atualização é baixada quando o app abre e aparece na **próxima** vez que ele for aberto.
 
-Só é preciso gerar um APK novo (`npm run android:apk`) quando a mudança mexer na parte nativa do app (permissão nova, biblioteca nativa nova). Nesses casos a versão em `app.json` (`"version"`) é aumentada, por exemplo de `1.0.0` para `1.1.0`, para o APK antigo não receber uma atualização que ele não aguenta.
+**APK novo** (`npm run android:apk`) só quando muda o ícone ou entra um recurso novo do celular. O APK já vem com galeria, câmera, calendário do celular, compartilhar, PDF, vibração e área de transferência, para quase tudo chegar só pela atualização automática. A versão em `app.json` continua a mesma; cada build recebe um número maior sozinho.
+
+**Avisar os clientes de um APK novo (sem WhatsApp):**
+1. Gere o APK e instale primeiro no seu celular.
+2. No app: **Perfil → Painel de acessos → Versão do app (Android)**.
+3. Cole o link do build (o que aparece no terminal ou no expo.dev) e toque em **Avisar todos**.
+4. Quem estiver com versão mais antiga vê na Agenda o aviso **"Nova versão do app"** com o botão **Baixar**: baixa e instala por cima, sem perder nada.
 
 ## 6. Versão para iPhone (web) com avisos
 

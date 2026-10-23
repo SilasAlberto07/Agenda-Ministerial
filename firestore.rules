@@ -34,6 +34,12 @@ service cloud.firestore {
         && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() <= 60));
     }
 
+    // Configuração do app (ex.: aviso de APK novo): todos leem, só o administrador muda
+    match /config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if admin();
+    }
+
     // ---- Acesso ao app ---------------------------------------------------------
     // acessos/{uid}: { liberado, limiteAparelhos, aparelhos: { id: {...} }, email, nome, criadoEm, ultimoAcesso }
     match /acessos/{uid} {

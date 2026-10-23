@@ -54,8 +54,15 @@
         "expo-image-picker",
         {
           "photosPermission": "Usamos suas fotos para você escolher a foto de perfil.",
-          "cameraPermission": false,
+          "cameraPermission": "Usamos a câmera para você tirar a foto de perfil.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Usamos o calendário para copiar seus compromissos para a agenda do celular, se você pedir.",
+          "remindersPermission": "Usamos os lembretes para copiar seus compromissos, se você pedir."
         }
       ]
     ],

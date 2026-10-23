@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, SectionList, TextInput, ActivityIndi
 import { Alert } from '../utils/alerta';
 import { useAuth } from '../auth/AuthContext';
 import { Icone } from '../components/icones';
+import CartaoVersaoAdmin from '../components/CartaoVersaoAdmin';
 import { cores, fontes } from '../theme';
 import {
   ouvirTodosAcessos,
@@ -101,6 +102,7 @@ export default function PainelAcessosScreen({ route }) {
 
   return (
     <View style={st.tela}>
+      <CartaoVersaoAdmin />
       <View style={st.resumo}>
         <Numero valor={pendentes} rotulo="aguardando" destaque={pendentes > 0} />
         <Numero valor={liberados} rotulo="liberados" />

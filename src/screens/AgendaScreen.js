@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useEventos } from '../services/EventosContext';
 import { Icone } from '../components/icones';
 import CartaoAvisos from '../components/CartaoAvisos';
+import AvisoVersao from '../components/AvisoVersao';
 import CartaoEvento from '../components/CartaoEvento';
 import Avatar from '../components/Avatar';
 import { usePerfil } from '../services/PerfilContext';
@@ -58,6 +59,8 @@ export default function AgendaScreen({ navigation }) {
           <Avatar foto={foto} nome={nome} tamanho={46} />
         </Pressable>
       </View>
+
+      <AvisoVersao />
 
       {offline ? (
         <View style={st.offline} accessibilityRole="alert">
