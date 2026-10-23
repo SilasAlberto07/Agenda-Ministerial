@@ -5,7 +5,7 @@ import { mesCurto, hora } from '../utils/datas';
 
 // Cartão de um compromisso, usado na Agenda e no Histórico.
 // No Histórico (historico=true) mostra o ano e o endereço completo.
-// hoje=true: compromisso de hoje, com borda e data em destaque.
+// hoje=true: compromisso de hoje, com borda, data em destaque e selo HOJE.
 export default function CartaoEvento({ evento, onPress, historico, hoje }) {
   const c = corDoTipo(evento.tipo);
   const onde = historico
@@ -29,6 +29,11 @@ export default function CartaoEvento({ evento, onPress, historico, hoje }) {
             {evento.tipo}
             {evento.participacao ? ` · ${evento.participacao.toLowerCase()}` : ''}
           </Text>
+          {hoje ? (
+            <View style={st.selo}>
+              <Text style={st.seloTexto}>Hoje</Text>
+            </View>
+          ) : null}
         </View>
         <Text style={st.nome} numberOfLines={2}>
           {evento.nome}
@@ -59,8 +64,13 @@ const st = StyleSheet.create({
     flexDirection: 'row', gap: 14, backgroundColor: cores.cartao, borderRadius: 18, padding: 14,
     borderWidth: 1, borderColor: cores.bordaSuave,
   },
-  cartaoHoje: { borderWidth: 2, borderColor: cores.vinho, backgroundColor: '#FCF5F7' },
+  cartaoHoje: {
+    borderWidth: 2, borderColor: cores.vinho, backgroundColor: '#FCF5F7',
+    shadowColor: cores.vinho, shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5,
+  },
   topo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  selo: { backgroundColor: cores.vinho, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginLeft: 'auto' },
+  seloTexto: { fontFamily: fontes.forte, fontSize: 11, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
   horaHoje: { fontFamily: fontes.forte, color: cores.vinho },
   caixaData: { width: 56, minHeight: 64, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 6 },
   mes: { fontFamily: fontes.forte, fontSize: 11, textTransform: 'uppercase' },

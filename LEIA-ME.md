@@ -55,7 +55,7 @@ Na primeira vez, crie sua conta pela própria tela do app em **Criar conta**.
 
 **Agenda e Histórico:** às 23h do dia de cada compromisso (ou 2 horas depois do início, se começar tarde), ele sai da agenda e vai para a aba **Histórico**. Nada é apagado: dá para abrir, ver o local e apagar pelo próprio histórico.
 
-**Compromissos de hoje:** aparecem em destaque na Agenda: um cartão vinho no topo ("Você tem compromisso hoje") e os cartões do dia com borda e a data marcada como **HOJE**.
+**Compromissos de hoje:** aparecem em destaque na Agenda: na opção **Todos**, eles sobem para a seção **Agenda de hoje**, separada dos próximos, com borda vinho, data marcada como **HOJE** e selo HOJE no canto.
 
 **Sem internet:** o app guarda uma cópia da agenda no aparelho toda vez que abre com internet. Sem internet, ele abre normalmente com essa cópia e mostra o aviso "Sem internet". Dá para consultar a agenda, o histórico e os detalhes. Para adicionar, editar ou excluir é preciso internet. Na versão web (iPhone), o site também fica guardado no aparelho e abre sem internet. Vale para o Android e para a web, depois de abrir o app uma vez com internet nesta versão.
 
